@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PenTool, Calculator, Users, FileText, Settings, Download, Mail, Check, type LucideProps } from 'lucide-react';
+import { PenTool, Calculator, Users, FileText, Settings, Download, Mail, Check, Code2, type LucideProps } from 'lucide-react';
 import { PROJECT_LOGO } from '@/shared/lib/constants';
 import clsx from 'clsx';
 
@@ -100,6 +100,15 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight mt-1">Soporte Técnico y Comercial Autorizado</p>
               </div>
             </div>
+            <a
+              href="https://resolvia.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-slate-500 hover:text-orange-400 transition-colors"
+            >
+              <Code2 size={14} />
+              <span className="text-xs">Desarrollado por <span className="font-semibold">ResolvIA</span></span>
+            </a>
             <a href="mailto:consultora.resolvia@gmail.com" className="flex items-center gap-2 text-slate-400 hover:text-orange-400 transition-colors">
               <Mail size={16} />
               <span className="text-sm">consultora.resolvia@gmail.com</span>
