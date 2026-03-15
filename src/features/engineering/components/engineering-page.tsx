@@ -3,16 +3,16 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
-import { HousePreset, HOUSE_PRESETS } from '@/shared/lib/presets';
+import type { HousePreset } from '@/shared/lib/presets';
 import type { Project, FacadeSide } from '@/shared/types';
 import FloorPlan from './floor-plan';
 import FacadeView from './facade-view';
 import Viewer3D from './viewer-3d';
 import Link from 'next/link';
 import {
-    FileText, Copy, ChevronLeft, ChevronRight, Maximize2, X, Download,
-    Loader2, Square, Plus, Minus, Home, ChevronDown, ChevronUp,
-    Box, Ruler, Eye, EyeOff, RotateCcw, Camera, Layers
+    FileText, Copy, Maximize2, X,
+    Square, Plus, Minus, ChevronDown, ChevronUp,
+    Box, Ruler, Eye, EyeOff, RotateCcw, Layers
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -125,7 +125,6 @@ const Engineering = () => {
         facadeConfigs, updateFacadeConfig,
         showBeams, setShowBeams,
         showRoofPlates, setShowRoofPlates,
-        beamOffset, setBeamOffset,
         activeInteriorWallId, setActiveInteriorWallId,
         project, foundationType, setFoundationType, structureType, setStructureType,
         selections, toggleSelectionCategory, setSelectionId, setSelections, setRoofSystem,
@@ -159,7 +158,7 @@ const Engineering = () => {
     /* ── local UI state ── */
     const [maximizedFacade, setMaximizedFacade] = useState<FacadeSide | null>(null);
     const [isFloorPlanExpanded, setIsFloorPlanExpanded] = useState(false);
-    const [activePresetId, setActivePresetId] = useState<string | null>(null);
+    const [_activePresetId, setActivePresetId] = useState<string | null>(null);
     const [ambientes, setAmbientes] = useState<number>(interiorWalls.length + 1);
     const [activeTab, setActiveTab] = useState<'plano' | '3d'>('plano');
     const [showReport, setShowReport] = useState(false);
@@ -235,58 +234,13 @@ const Engineering = () => {
         alert("Reporte copiado al portapapeles!");
     };
 
-    const activePreset = HOUSE_PRESETS.find(p => p.id === activePresetId);
+    void _activePresetId; // preset selection kept for programmatic use
 
     /* ══════════════════════════════════════════════
        RENDER
        ══════════════════════════════════════════════ */
     return (
         <div className="flex flex-col gap-4 pb-6">
-
-            {/* ════════════════════════════════════════
-               ROW 1: PRESETS (horizontal scroll)
-               ════════════════════════════════════════ */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                        <Home size={14} className="text-orange-500" />
-                        Modelos Predefinidos
-                    </h2>
-                    {activePreset && (
-                        <div className="flex items-center gap-2 bg-orange-50 text-orange-700 rounded-lg px-3 py-1 border border-orange-200">
-                            <span className="text-sm">{activePreset.icon}</span>
-                            <span className="text-xs font-bold">{activePreset.name}</span>
-                            <span className="text-xs text-orange-500">{activePreset.dimensions.width}x{activePreset.dimensions.length}m</span>
-                        </div>
-                    )}
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    {HOUSE_PRESETS.map(preset => {
-                        const isActive = activePresetId === preset.id;
-                        const presetArea = preset.dimensions.width * preset.dimensions.length;
-                        return (
-                            <button
-                                key={preset.id}
-                                onClick={() => applyPreset(preset)}
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all shrink-0 ${isActive
-                                    ? 'bg-orange-50 border-orange-500 shadow-sm'
-                                    : 'border-slate-100 hover:border-orange-300 hover:bg-orange-50/30'
-                                    }`}
-                            >
-                                <span className="text-xl leading-none">{preset.icon}</span>
-                                <div className="text-left">
-                                    <span className={`text-xs font-bold block leading-tight ${isActive ? 'text-orange-700' : 'text-slate-700'}`}>
-                                        {preset.name}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 font-medium">
-                                        {preset.rooms} amb &middot; {presetArea} m2
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
 
             {/* ════════════════════════════════════════
                ROW 2: CONTROLS RIBBON
@@ -479,21 +433,7 @@ const Engineering = () => {
                         {activeTab === 'plano' ? (
                             <FloorPlan hideUI={!!maximizedFacade} isExpanded={isFloorPlanExpanded} />
                         ) : (
-                            <div className="h-full relative">
-                                <Viewer3D />
-                                {/* Beam offset slider */}
-                                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur rounded-lg p-2 border border-slate-200 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Ajuste cubierta</span>
-                                        <input
-                                            type="range" min="-0.2" max="0.5" step="0.01" value={beamOffset}
-                                            onChange={(e) => setBeamOffset(parseFloat(e.target.value))}
-                                            className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                                        />
-                                        <span className="text-xs font-bold text-cyan-600 w-10 text-right">{(beamOffset * 100).toFixed(0)}cm</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <Viewer3D />
                         )}
                     </div>
                 </div>
@@ -525,15 +465,15 @@ const Engineering = () => {
                     </div>
 
                     {/* Technical Report (expandable) */}
-                    <div className="bg-slate-900 rounded-2xl overflow-hidden flex flex-col flex-1">
+                    <div className={`bg-slate-900 rounded-2xl overflow-hidden flex flex-col ${showReport ? 'flex-1' : ''}`}>
                         <button
                             onClick={() => setShowReport(!showReport)}
-                            className="flex items-center justify-between px-4 py-3 hover:bg-slate-800 transition-colors"
+                            className={`flex items-center justify-between px-4 hover:bg-slate-800 transition-colors ${showReport ? 'py-3' : 'py-2'}`}
                         >
-                            <span className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                                <FileText size={14} /> Reporte Tecnico
+                            <span className={`font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2 ${showReport ? 'text-xs' : 'text-[10px]'}`}>
+                                <FileText size={showReport ? 14 : 12} /> Reporte Tecnico
                             </span>
-                            {showReport ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
+                            {showReport ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
                         </button>
 
                         {showReport && (
@@ -624,11 +564,11 @@ const Engineering = () => {
                ROW 4: FACADES STRIP
                ════════════════════════════════════════ */}
             {!isFloorPlanExpanded && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(['Norte', 'Sur', 'Este', 'Oeste'] as const).map(side => {
                         const isVisible = (project as any).perimeterVisibility?.[side] !== false;
                         return (
-                            <div key={side} className={`h-48 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
+                            <div key={side} className={`h-64 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
                                 <FacadeView
                                     type={side}
                                     data={{ ...dimensions, openings, facadeConfigs }}

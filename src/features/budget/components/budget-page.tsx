@@ -418,28 +418,28 @@ const BudgetPage = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     {selections.includeExterior !== false && (
-                        <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Muros Exteriores</p>
                             <p className="text-3xl font-black text-slate-900 leading-none">{geo.cantMurosExt || 0}</p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Unidades</p>
                         </div>
                     )}
                     {selections.includeInterior !== false && (
-                        <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Muros Interiores</p>
                             <p className="text-3xl font-black text-slate-900 leading-none">{geo.cantMurosInt || 0}</p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Unidades</p>
                         </div>
                     )}
                     {(foundationType !== 'platea' && selections.includeFloor !== false) && (
-                        <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Paneles de Piso</p>
                             <p className="text-3xl font-black text-slate-900 leading-none">{geo.cantPiso || 0}</p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Unidades</p>
                         </div>
                     )}
                     {selections.includeRoof !== false && (
-                        <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center flex flex-col items-center justify-center group hover:bg-white hover:border-orange-200 transition-all">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Paneles de Techo</p>
                             <p className="text-3xl font-black text-slate-900 leading-none">{geo.cantTecho || 0}</p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Unidades</p>
@@ -461,7 +461,7 @@ const BudgetPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className={`bg-white p-6 rounded-[32px] border shadow-sm flex flex-col justify-between group transition-all ${project.projectInfo?.showEarlyPaymentDiscount === false ? 'opacity-50 border-slate-100 grayscale' : 'border-emerald-100 hover:border-emerald-200'}`}>
+                    <div className={`bg-white p-6 rounded-2xl border shadow-sm flex flex-col justify-between group transition-all ${project.projectInfo?.showEarlyPaymentDiscount === false ? 'opacity-50 border-slate-100 grayscale' : 'border-emerald-100 hover:border-emerald-200'}`}>
                         <div>
                             <div className="flex justify-between items-start">
                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full uppercase tracking-widest">Pronto Pago</span>
@@ -486,7 +486,7 @@ const BudgetPage = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-indigo-200 transition-all">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-indigo-200 transition-all">
                         <div>
                             <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full uppercase tracking-widest">Beneficio por Volumen</span>
                             <h5 className="text-xl font-black text-slate-800 mt-2">8% OFF</h5>
@@ -498,7 +498,7 @@ const BudgetPage = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-amber-200 transition-all">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-amber-200 transition-all">
                         <div>
                             <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-full uppercase tracking-widest">Ciudad de Cordoba</span>
                             <h5 className="text-xl font-black text-slate-800 mt-2">12% OFF</h5>

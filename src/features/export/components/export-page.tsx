@@ -37,24 +37,23 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title }) => {
   }, [project.budgetNumber, generateBudgetNumber]);
 
   return (
-    <div className="relative mb-10 shrink-0">
-      <div className="absolute -left-[20mm] top-0 w-2 h-16 bg-orange-600 rounded-r-full"></div>
-      <div className="flex justify-between items-end pb-4 border-b-2 border-slate-100">
+    <div className="relative mb-8 shrink-0">
+      <div className="flex justify-between items-end pb-3 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm border border-slate-200">
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center p-1.5 border border-slate-100">
               <img src={PROJECT_LOGO} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-slate-950 tracking-widest leading-none">MODULADOR SIP</span>
-              <span className="text-[8px] font-bold text-orange-600 uppercase tracking-tighter mt-1">{FACTORY_NAME}</span>
+              <span className="text-[8px] font-bold text-orange-600 uppercase tracking-tighter mt-0.5">{FACTORY_NAME}</span>
             </div>
           </div>
-          <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">{title || 'Documento'}</h1>
+          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">{title || 'Documento'}</h1>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Registro Tecnico No.</p>
-          <p className="text-xs font-mono font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-full inline-block">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Registro No.</p>
+          <p className="text-xs font-mono font-bold text-slate-900 bg-slate-50 px-3 py-1 rounded-lg inline-block border border-slate-100">
             {project.budgetNumber || '...'}
           </p>
         </div>
@@ -244,20 +243,20 @@ const Export: React.FC = () => {
             `}</style>
 
       <div className="fixed bottom-8 right-8 z-[100] print:hidden flex flex-col gap-3">
-        <button disabled={isGeneratingImage} onClick={handleExportPDF} className="group bg-orange-600 hover:bg-orange-500 text-white px-8 py-4 rounded-full font-black uppercase tracking-widest shadow-2xl flex items-center gap-3 transition-all transform active:scale-95 border-4 border-white">
-          {isGeneratingImage ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} />}
-          {isGeneratingImage ? "Generando..." : "Descargar PDF Pro"}
+        <button disabled={isGeneratingImage} onClick={handleExportPDF} className="group bg-orange-600 hover:bg-orange-500 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-orange-500/30 flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95 border-4 border-white text-base">
+          {isGeneratingImage ? <Loader2 className="animate-spin" size={22} /> : <FileText size={22} />}
+          {isGeneratingImage ? "Generando..." : "Generar PDF"}
         </button>
-        <button disabled={isGeneratingImage} onClick={handleExportImage} className="group bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-full font-black uppercase tracking-[0.15em] text-[10px] shadow-xl flex items-center justify-center gap-3 transition-all transform active:scale-95 border-2 border-white">
+        <button disabled={isGeneratingImage} onClick={handleExportImage} className="group bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-105 active:scale-95 border-2 border-white">
           <ImageIcon size={18} /> Exportar como Imagen
         </button>
       </div>
 
       <div id="export-container" className="flex flex-col items-center gap-10 print:gap-0 print:block">
         {/* PAGE 1: PORTADA */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none p-[10mm] flex flex-col items-stretch text-slate-900 relative">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0 p-[10mm] flex flex-col items-stretch text-slate-900 relative">
           <div className="absolute top-0 right-0 w-[150mm] h-[150mm] bg-orange-50 rounded-full -mr-[50mm] -mt-[50mm] blur-[100px] opacity-50"></div>
-          <div className="flex-1 flex flex-col border-[4px] border-slate-50 p-6 rounded-[50px] relative z-10 overflow-hidden">
+          <div className="flex-1 flex flex-col border-[4px] border-slate-50 p-6 rounded-3xl relative z-10 overflow-hidden">
             <div className="flex justify-between items-center mb-8 px-4">
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center p-2 shadow-xl border border-slate-100">
@@ -277,7 +276,7 @@ const Export: React.FC = () => {
               <h2 className="text-6xl font-black tracking-tighter leading-tight uppercase mb-2">PROPUESTA <span className="text-orange-500">TECNICA</span></h2>
               <p className="text-2xl font-bold text-slate-500 uppercase tracking-wider">Sistema Constructivo SIP</p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-white rounded-[40px] p-8 border-2 border-slate-100 mb-8 shadow-sm">
+            <div className="bg-gradient-to-br from-slate-50 to-white rounded-2xl p-8 border-2 border-slate-100 mb-8 shadow-sm">
               <h3 className="text-xs font-black text-orange-600 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
                 <div className="w-2 h-2 bg-orange-500 rounded-full"></div> Informacion del Proyecto
               </h3>
@@ -288,7 +287,7 @@ const Export: React.FC = () => {
                 <div><div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Superficie</div><div className="text-lg font-black text-slate-900 text-orange-600">{geo?.areaPiso?.toFixed(1) || '0'} m2</div></div>
               </div>
             </div>
-            <div className="flex-[3] bg-slate-100 rounded-[50px] overflow-hidden relative border-8 border-white shadow-2xl mb-8">
+            <div className="flex-[3] bg-slate-100 rounded-3xl overflow-hidden relative border-8 border-white shadow-2xl mb-8">
               {snapshots && snapshots.length > 0 ? (
                 <img src={snapshots[0]} className="w-full h-full object-cover" alt="Vista 3D" />
               ) : (
@@ -300,10 +299,10 @@ const Export: React.FC = () => {
         </div>
 
         {/* PAGE 2: SISTEMA SIP */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Sistema Constructivo SIP" />
           <div className="flex-1 space-y-6">
-            <div className="bg-gradient-to-br from-orange-50 to-white rounded-[30px] p-6 border-2 border-orange-100">
+            <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-6 border-2 border-orange-100">
               <h3 className="text-lg font-black text-orange-600 uppercase tracking-wider mb-4">Que es el Sistema SIP?</h3>
               <p className="text-base leading-relaxed text-slate-700 font-bold uppercase">Los Paneles Estructurales Aislados (SIP) son un sistema de ultima generacion que combina estructura y aislacion termica. Consisten en un nucleo de EPS de densidad estandar revestido en ambas caras con tableros OSB estructurales.</p>
             </div>
@@ -314,7 +313,7 @@ const Export: React.FC = () => {
                 { t: 'Alta Resistencia', d: 'Estructura monolitica con excelente respuesta sismica.', e: '\uD83D\uDCAA' },
                 { t: 'Sustentable', d: 'Menor impacto ambiental y reduccion de residuos.', e: '\uD83C\uDF31' },
               ].map((v, i) => (
-                <div key={i} className="bg-white rounded-[25px] p-6 border-2 border-slate-100 shadow-sm flex flex-col items-center text-center justify-center">
+                <div key={i} className="bg-white rounded-xl p-6 border-2 border-slate-100 shadow-sm flex flex-col items-center text-center justify-center">
                   <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-4 text-4xl">{v.e}</div>
                   <h4 className="text-lg font-black text-slate-900 uppercase tracking-wide mb-3">{v.t}</h4>
                   <p className="text-sm text-slate-600 leading-relaxed font-bold uppercase">{v.d}</p>
@@ -326,7 +325,7 @@ const Export: React.FC = () => {
         </div>
 
         {/* PAGE 3: PLANTA */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Plano de Planta y Eficiencia Energetica" />
           <div className="flex-1 flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
@@ -342,11 +341,11 @@ const Export: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="flex-1 bg-white border-2 border-slate-100 rounded-[40px] flex items-center justify-center relative overflow-hidden">
+            <div className="flex-1 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <FloorPlan isPrint={true} />
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-slate-900 rounded-[30px] p-6 text-white space-y-4 shadow-xl">
+              <div className="bg-slate-900 rounded-2xl p-6 text-white space-y-4 shadow-xl">
                 <h4 className="text-xs font-black uppercase tracking-[0.2em] text-orange-400 border-b border-white/10 pb-2 flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
                   Memoria Tecnica SIP
@@ -370,7 +369,7 @@ const Export: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-orange-50 border border-orange-100 rounded-[30px] p-6 space-y-4">
+              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 space-y-4">
                 <h4 className="text-xs font-black uppercase tracking-[0.2em] text-orange-700 border-b border-orange-200 pb-2">Beneficios a Largo Plazo</h4>
                 <ul className="space-y-2">
                   {[
@@ -394,13 +393,13 @@ const Export: React.FC = () => {
 
         {/* PAGE 4 & 5: FACHADAS */}
         {([['Norte', 'Sur'] as const, ['Este', 'Oeste'] as const] as const).map((sides, pIdx) => (
-          <div key={pIdx} className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+          <div key={pIdx} className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
             <PageHeader title={`Fachadas - ${sides[0]} y ${sides[1]}`} />
             <div className="flex-1 flex flex-col justify-around py-4">
               {sides.map(side => (
                 <div key={side} className="flex-1 flex flex-col justify-center space-y-4">
                   <h3 className="text-center text-[12px] font-black text-slate-900 uppercase tracking-[0.4em]">Fachada: {side}</h3>
-                  <div className="flex-1 bg-white rounded-[40px] border border-slate-100 p-2 flex items-center justify-center overflow-hidden">
+                  <div className="flex-1 bg-white rounded-2xl border border-slate-100 p-2 flex items-center justify-center overflow-hidden">
                     <FacadeView type={side} data={{ ...dimensions, openings, facadeConfigs, project, isPrint: true }} scale={35} />
                   </div>
                 </div>
@@ -411,7 +410,7 @@ const Export: React.FC = () => {
         ))}
 
         {/* PAGE 6: MEMORIA */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Memoria de Materiales" />
           <div className="flex-1 flex flex-col justify-center space-y-12">
             <section className="space-y-6">
@@ -427,7 +426,7 @@ const Export: React.FC = () => {
                   { label: 'Techo SIP', val: geo?.cantTecho || 0, show: selections.includeRoof !== false, highlight: false },
                   { label: 'TOTAL KIT', val: geo?.totalPaneles || 0, highlight: true, show: true },
                 ].filter(item => item.show).map((item, i) => (
-                  <div key={i} className={`p-8 rounded-[35px] border-2 flex flex-col items-center text-center transition-all flex-1 h-full min-h-[160px] justify-center ${item.highlight ? 'bg-slate-900 border-slate-900 text-white shadow-xl scale-105' : 'bg-white border-slate-50 shadow-sm'}`}>
+                  <div key={i} className={`p-8 rounded-2xl border-2 flex flex-col items-center text-center transition-all flex-1 h-full min-h-[160px] justify-center ${item.highlight ? 'bg-slate-900 border-slate-900 text-white shadow-xl scale-105' : 'bg-white border-slate-50 shadow-sm'}`}>
                     <p className={`text-[9px] font-black uppercase tracking-widest mb-3 ${item.highlight ? 'text-orange-400' : 'text-slate-400'}`}>{item.label}</p>
                     <span className="text-4xl font-black tabular-nums leading-none tracking-tighter">{item.val}</span>
                   </div>
@@ -448,7 +447,7 @@ const Export: React.FC = () => {
                   { label: 'Lineales Tabiques', val: geo?.tabiques?.toFixed(2), unit: 'ml', icon: <Columns size={28} /> },
                   { label: 'Perimetro Aberturas', val: geo?.perimAberturas?.toFixed(2), unit: 'ml', icon: <Square size={28} /> },
                 ].map((row, i) => (
-                  <div key={i} className="bg-slate-50 rounded-[40px] p-8 border border-slate-100 flex items-center justify-between group hover:bg-white transition-all shadow-sm">
+                  <div key={i} className="bg-slate-50 rounded-2xl p-8 border border-slate-100 flex items-center justify-between group hover:bg-white transition-all shadow-sm">
                     <div className="flex items-center gap-6">
                       <div className="text-orange-500 opacity-20 group-hover:opacity-100 transition-opacity">{row.icon}</div>
                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-tight uppercase font-black uppercase">{row.label}</p>
@@ -466,10 +465,10 @@ const Export: React.FC = () => {
         </div>
 
         {/* PAGE 7: ECONOMICA PANELES */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Propuesta Economica - Sistema SIP" />
           <div className="flex-1 flex flex-col gap-4 min-h-0">
-            <div className="rounded-[30px] border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 overflow-y-auto">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 overflow-y-auto">
               <table className="w-full text-left border-collapse border-b border-slate-100">
                 <thead className="bg-slate-900 text-[8px] font-black text-white uppercase tracking-[0.2em] sticky top-0">
                   <tr>
@@ -493,7 +492,7 @@ const Export: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <div className="flex justify-between items-center p-6 bg-slate-50 rounded-[30px] border border-slate-100 shrink-0">
+            <div className="flex justify-between items-center p-6 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
               <div className="text-left"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">Valor Neto</p></div>
               <div className="text-right">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal Sistema SIP</p>
@@ -506,10 +505,10 @@ const Export: React.FC = () => {
 
         {/* PAGE 8 & potentially 9: ECONOMICA INSUMOS */}
         {suppliesPages.map((pageItems: BudgetItem[], pageIdx: number) => (
-          <div key={`supplies-page-${pageIdx}`} className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+          <div key={`supplies-page-${pageIdx}`} className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
             <PageHeader title={suppliesPages.length > 1 ? `Propuesta Economica - Insumos (Parte ${pageIdx + 1})` : "Propuesta Economica - Insumos y Estructura"} />
             <div className="flex-1 flex flex-col gap-4 min-h-0">
-              <div className="rounded-[30px] border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 overflow-y-auto">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 overflow-y-auto">
                 <table className="w-full text-left border-collapse border-b border-slate-100">
                   <thead className="bg-slate-900 text-[8px] font-black text-white uppercase tracking-[0.2em] sticky top-0">
                     <tr>
@@ -550,7 +549,7 @@ const Export: React.FC = () => {
                 </table>
               </div>
               {pageIdx === suppliesPages.length - 1 && (
-                <div className="flex justify-end p-6 bg-slate-50 rounded-[30px] border border-slate-100 shrink-0">
+                <div className="flex justify-end p-6 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
                   <div className="text-right">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Subtotal Insumos y Estructura</p>
                     <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">{formatCurrency(suppliesSubtotal)}</p>
@@ -563,10 +562,10 @@ const Export: React.FC = () => {
         ))}
 
         {/* PAGE FINAL: RESUMEN */}
-        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Resumen de Inversion" />
           <div className="flex-1 space-y-8">
-            <div className="bg-slate-50 rounded-[40px] p-8 border-2 border-slate-100">
+            <div className="bg-slate-50 rounded-2xl p-8 border-2 border-slate-100">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-orange-500 rounded-full"></div> Beneficios por Modalidad de Pago
               </h4>
@@ -589,7 +588,7 @@ const Export: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="bg-slate-900 rounded-[50px] p-[40px] border-4 border-white flex-col relative shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 rounded-3xl p-[40px] border-4 border-white flex-col relative shadow-2xl overflow-hidden">
               <h3 className="text-xl font-black uppercase tracking-tighter text-white flex items-center gap-4 mb-8 relative z-10">
                 <div className="w-2 h-8 bg-orange-500 rounded-full"></div> Resumen de Inversion
               </h3>
@@ -621,12 +620,12 @@ const Export: React.FC = () => {
 
         {/* GALLERIA */}
         {snapshots && snapshots.length > 0 && (
-          <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl mb-10 print:mb-0 print:border-none">
+          <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
             <PageHeader title="Galeria de Vistas" />
             <div className="flex-1 flex flex-col gap-6 overflow-hidden uppercase font-black uppercase uppercase font-black uppercase">
               <div className="grid grid-cols-2 grid-rows-3 gap-4 flex-1">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-slate-50 rounded-[35px] overflow-hidden border border-slate-200 shadow-md flex items-center justify-center relative h-full">
+                  <div key={i} className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-md flex items-center justify-center relative h-full">
                     {snapshots[i] ? <img src={snapshots[i]} className="w-full h-full object-cover" alt={`Vista ${i + 1}`} /> : <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest tracking-tighter">Vista no generada</span>}
                   </div>
                 ))}

@@ -1,10 +1,19 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, Environment, PerspectiveCamera, Text } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Environment, PerspectiveCamera, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { Camera, Check } from 'lucide-react';
+
+type FacadeMaterialType = 'osb' | 'chapa_negra' | 'galvanizada' | 'cementicia';
+
+const FACADE_MATERIALS: Record<FacadeMaterialType, { color: string; metalness?: number; roughness?: number; label: string }> = {
+    osb: { color: '#e2b17a', label: 'OSB' },
+    chapa_negra: { color: '#1a1a1a', label: 'Chapa Negra' },
+    galvanizada: { color: '#a8b0b8', metalness: 0.8, roughness: 0.3, label: 'Galvanizada' },
+    cementicia: { color: '#9ca3af', roughness: 0.9, label: 'Cementicia' },
+};
 import { useStore } from '@/shared/store/useStore';
 
 const OSB_COLOR = '#e2b17a';
@@ -62,11 +71,40 @@ const Opening3D = ({ opening, dimensions, project }: Opening3DProps) => {
         else if (side === 'Este') { pos = [W + offset, y + h / 2, x + w / 2]; rot = [0, -Math.PI / 2, 0]; }
         else if (side === 'Oeste') { pos = [-offset, y + h / 2, L - (x + w / 2)]; rot = [0, Math.PI / 2, 0]; }
 
+        const frameThickness = 0.06;
         return (
-            <mesh position={pos} rotation={rot} castShadow>
-                <boxGeometry args={[w, h, 0.14]} />
-                <meshStandardMaterial color={type === 'window' ? '#bae6fd' : '#1e293b'} transparent opacity={type === 'window' ? 0.6 : 1} />
-            </mesh>
+            <group position={pos} rotation={rot}>
+                {/* Frame border */}
+                <mesh castShadow>
+                    <boxGeometry args={[w + frameThickness * 2, h + frameThickness * 2, 0.15]} />
+                    <meshStandardMaterial color="#1e293b" />
+                </mesh>
+                {/* Inner fill */}
+                <mesh position={[0, 0, 0.005]} castShadow>
+                    <boxGeometry args={[w, h, 0.14]} />
+                    <meshStandardMaterial
+                        color={type === 'window' ? '#bae6fd' : '#334155'}
+                        transparent
+                        opacity={type === 'window' ? 0.5 : 1}
+                        metalness={type === 'window' ? 0.1 : 0}
+                        roughness={type === 'window' ? 0.1 : 0.8}
+                    />
+                </mesh>
+                {type === 'window' && (
+                    <>
+                        {/* Horizontal mullion */}
+                        <mesh position={[0, 0, 0.02]}>
+                            <boxGeometry args={[w, 0.03, 0.04]} />
+                            <meshStandardMaterial color="#1e293b" />
+                        </mesh>
+                        {/* Vertical mullion */}
+                        <mesh position={[0, 0, 0.02]}>
+                            <boxGeometry args={[0.03, h, 0.04]} />
+                            <meshStandardMaterial color="#1e293b" />
+                        </mesh>
+                    </>
+                )}
+            </group>
         );
     }
 
@@ -97,11 +135,38 @@ const Opening3D = ({ opening, dimensions, project }: Opening3DProps) => {
         else if (side === 'Oeste') { pos = [rd / 2, y + h / 2, L - (rx + rw) - offset]; rot = [0, Math.PI, 0]; }
     }
 
+    const frameThickness = 0.06;
     return (
-        <mesh position={pos} rotation={rot} castShadow>
-            <boxGeometry args={[w, h, 0.14]} />
-            <meshStandardMaterial color={type === 'window' ? '#bae6fd' : '#1e293b'} transparent opacity={type === 'window' ? 0.6 : 1} />
-        </mesh>
+        <group position={pos} rotation={rot}>
+            {/* Frame border */}
+            <mesh castShadow>
+                <boxGeometry args={[w + frameThickness * 2, h + frameThickness * 2, 0.15]} />
+                <meshStandardMaterial color="#1e293b" />
+            </mesh>
+            {/* Inner fill */}
+            <mesh position={[0, 0, 0.005]} castShadow>
+                <boxGeometry args={[w, h, 0.14]} />
+                <meshStandardMaterial
+                    color={type === 'window' ? '#bae6fd' : '#334155'}
+                    transparent
+                    opacity={type === 'window' ? 0.5 : 1}
+                    metalness={type === 'window' ? 0.1 : 0}
+                    roughness={type === 'window' ? 0.1 : 0.8}
+                />
+            </mesh>
+            {type === 'window' && (
+                <>
+                    <mesh position={[0, 0, 0.02]}>
+                        <boxGeometry args={[w, 0.03, 0.04]} />
+                        <meshStandardMaterial color="#1e293b" />
+                    </mesh>
+                    <mesh position={[0, 0, 0.02]}>
+                        <boxGeometry args={[0.03, h, 0.04]} />
+                        <meshStandardMaterial color="#1e293b" />
+                    </mesh>
+                </>
+            )}
+        </group>
     );
 };
 
@@ -163,16 +228,23 @@ interface HouseModelProps {
     showRoofPlates: boolean;
     project: any;
     beamOffset?: number;
+    facadeMaterial?: FacadeMaterialType;
 }
 
-const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBeams, showRoofPlates, project, beamOffset = 0 }: HouseModelProps) => {
+const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBeams, showRoofPlates, project, beamOffset = 0, facadeMaterial = 'osb' }: HouseModelProps) => {
     // CRITICAL SAFETY GUARD
     if (!facadeConfigs || !dimensions) return null;
 
     const width = Number(dimensions.width) || 1;
     const length = Number(dimensions.length) || 1;
     const recesses = project?.recesses || [];
-    const mat = new THREE.MeshStandardMaterial({ color: OSB_COLOR, side: THREE.DoubleSide });
+    const facadeMatConfig = FACADE_MATERIALS[facadeMaterial] || FACADE_MATERIALS.osb;
+    const mat = new THREE.MeshStandardMaterial({
+        color: facadeMatConfig.color,
+        side: THREE.DoubleSide,
+        ...(facadeMatConfig.metalness !== undefined && { metalness: facadeMatConfig.metalness }),
+        ...(facadeMatConfig.roughness !== undefined && { roughness: facadeMatConfig.roughness }),
+    });
     const intMat = new THREE.MeshStandardMaterial({ color: INT_WALL_COLOR, side: THREE.DoubleSide });
 
     const minBaseH = Math.min(...Object.values(facadeConfigs).map((c: any) => Number(c.hBase) || 2.44));
@@ -769,6 +841,20 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
     );
 };
 
+const FactoryLogo = () => {
+    try {
+        const texture = useTexture('https://lafabricadelpanel.com.ar/wp-content/uploads/2026/02/logo-la-fabrica-del-panel.png');
+        return (
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 6]} receiveShadow>
+                <planeGeometry args={[3, 1.2]} />
+                <meshStandardMaterial map={texture} transparent alphaTest={0.1} />
+            </mesh>
+        );
+    } catch {
+        return null;
+    }
+};
+
 const Viewer3D = () => {
     const {
         dimensions = { width: 6, length: 8 },
@@ -784,6 +870,7 @@ const Viewer3D = () => {
     } = useStore();
     const canvasRef = React.useRef<HTMLDivElement>(null);
     const [captured, setCaptured] = React.useState(false);
+    const [facadeMaterial, setFacadeMaterial] = useState<FacadeMaterialType>('osb');
 
     const handleCapture = () => {
         if (!canvasRef.current) return;
@@ -797,7 +884,7 @@ const Viewer3D = () => {
     };
 
     return (
-        <div id="viewer-3d-container" ref={canvasRef} className="w-full h-full bg-slate-100 rounded-[40px] overflow-hidden border border-slate-200 shadow-inner relative group">
+        <div id="viewer-3d-container" ref={canvasRef} className="w-full h-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative group">
             <Canvas
                 shadows
                 camera={{ position: [12, 10, 12], fov: 35 }}
@@ -822,10 +909,25 @@ const Viewer3D = () => {
                     shadow-camera-bottom={-30}
                     shadow-bias={-0.0001}
                 />
-                <HouseModel dimensions={dimensions} openings={openings} facadeConfigs={facadeConfigs} interiorWalls={interiorWalls} showBeams={showBeams} showRoofPlates={showRoofPlates} project={project} beamOffset={beamOffset} />
+                <HouseModel dimensions={dimensions} openings={openings} facadeConfigs={facadeConfigs} interiorWalls={interiorWalls} showBeams={showBeams} showRoofPlates={showRoofPlates} project={project} beamOffset={beamOffset} facadeMaterial={facadeMaterial} />
+                <FactoryLogo />
                 <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
                 <ContactShadows opacity={0.25} scale={40} blur={2} far={10} position={[0, -0.01, 0]} />
             </Canvas>
+
+            {/* Material Selection Panel */}
+            <div className="absolute bottom-6 right-24 bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-2 flex items-center gap-1.5 lg:translate-y-4 lg:opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1">Material</span>
+                {(Object.entries(FACADE_MATERIALS) as [FacadeMaterialType, typeof FACADE_MATERIALS[FacadeMaterialType]][]).map(([key, val]) => (
+                    <button
+                        key={key}
+                        onClick={() => setFacadeMaterial(key)}
+                        title={val.label}
+                        className={`w-7 h-7 rounded-lg border-2 transition-all ${facadeMaterial === key ? 'border-slate-900 scale-110 shadow-md' : 'border-slate-300 hover:border-slate-500'}`}
+                        style={{ backgroundColor: val.color }}
+                    />
+                ))}
+            </div>
 
             {/* Float Capture Button */}
             <button

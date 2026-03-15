@@ -1,6 +1,6 @@
 import type { Product } from '@/shared/types';
 
-export const PROJECT_LOGO = "https://lafabricadelpanel.com.ar/wp-content/uploads/2024/03/Isologo_lfp_RGB_sin_fondo.png";
+export const PROJECT_LOGO = "https://lafabricadelpanel.com.ar/wp-content/uploads/2026/02/logo-la-fabrica-del-panel.png";
 
 export const INITIAL_PRICES: Product[] = [
     // --- 1. SISTEMA DE PANELES (ESP 70mm estandar, 80mm Sandwich) ---

@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
-import { Plus, Minus, RotateCcw, PenTool, Trash2, Repeat, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2 } from 'lucide-react';
+import { Plus, Minus, RotateCcw, PenTool, Trash2, Repeat, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2, Hand } from 'lucide-react';
 
 interface RangeControlProps {
     label: string;
@@ -16,43 +16,41 @@ interface RangeControlProps {
 }
 
 const RangeControl = ({ label, value, onChange, min, max, step, unit }: RangeControlProps) => {
-    const [localValue, setLocalValue] = React.useState<number | string>(value);
-    React.useEffect(() => { setLocalValue(value); }, [value]);
+    const [localValue, setLocalValue] = React.useState<string>(Number(value).toFixed(2));
+    React.useEffect(() => { setLocalValue(Number(value).toFixed(2)); }, [value]);
 
-    const handleBlur = () => {
-        let val = parseFloat(String(localValue));
-        if (isNaN(val)) val = value;
-        val = Math.max(min, Math.min(max, val));
-        onChange(val);
-        setLocalValue(val);
+    const clamp = (v: number) => Math.max(min, Math.min(max, v));
+
+    const commit = (raw: string) => {
+        let v = parseFloat(raw);
+        if (isNaN(v)) v = value;
+        v = clamp(v);
+        setLocalValue(v.toFixed(2));
+        onChange(v);
     };
 
-    const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseFloat(e.target.value);
-        onChange(val);
-    };
+    const inc = () => onChange(parseFloat(clamp(value + step).toFixed(4)));
+    const dec = () => onChange(parseFloat(clamp(value - step).toFixed(4)));
 
     return (
-        <div className="space-y-1.5 p-1 rounded-2xl hover:bg-slate-50 transition-colors">
-            <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-tight px-1">
-                <span>{label}</span>
-                <span className="text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">{Number(value).toFixed(2)}{unit}</span>
-            </div>
-            <div className="flex gap-3 items-center">
+        <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight w-14 shrink-0">{label}</span>
+            <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white h-7 flex-1">
+                <button onClick={dec} className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-r border-slate-200">
+                    <Minus size={10} className="text-slate-500" />
+                </button>
                 <input
-                    type="range" min={min} max={max} step={step} value={value}
-                    onChange={handleSliderChange}
-                    className="flex-1 accent-indigo-600 h-1 appearance-none bg-slate-200 rounded-full cursor-pointer"
+                    type="text" value={localValue}
+                    onChange={(e) => setLocalValue(e.target.value)}
+                    onBlur={() => commit(localValue)}
+                    onKeyDown={(e) => e.key === 'Enter' && commit(localValue)}
+                    className="flex-1 text-center text-[11px] font-bold text-slate-800 outline-none bg-transparent h-full min-w-0"
                 />
-                <div className="relative">
-                    <input
-                        type="text" value={localValue}
-                        onChange={(e) => setLocalValue(e.target.value)}
-                        onBlur={handleBlur}
-                        className="w-12 text-[10px] font-black text-center bg-white border border-slate-200 rounded-lg py-1 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
-                    />
-                </div>
+                <button onClick={inc} className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-l border-slate-200">
+                    <Plus size={10} className="text-slate-500" />
+                </button>
             </div>
+            <span className="text-[9px] font-bold text-slate-400 w-5 shrink-0">{unit}</span>
         </div>
     );
 };
@@ -95,7 +93,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
         activeOpeningId, setActiveOpeningId, activeRecessId, setActiveRecessId, removeOpening, removeRecess,
         undo, redo, historyIndex, history,
         copyWall, cutWall, pasteWall, duplicateWall, updateOpening,
-        updateRecess: storeUpdateRecess
+        updateRecess: storeUpdateRecess, addOpening
     } = useStore();
 
     // Local wrapper: the component calls updateRecess(id, updates) but the store expects (side, id, updates)
@@ -134,10 +132,31 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             setZoom(autoZoom);
             setPan({ x: 0, y: 0 });
         } else {
-            setZoom(1);
+            const padding = 120;
+            const availableW = 800 - padding;
+            const availableH = 600 - padding;
+            const houseW = (dimensions.width || 6) * BASE_SCALE;
+            const houseH = (dimensions.length || 8) * BASE_SCALE;
+            const autoZoom = Math.min(availableW / houseW, availableH / houseH, 1.8);
+            setZoom(autoZoom);
             setPan({ x: 0, y: 0 });
         }
     }, [isExpanded, isPrint, dimensions.width, dimensions.length]);
+
+    // Wheel zoom (non-passive to prevent page scroll)
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            setZoom(prev => {
+                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                return Math.min(5, Math.max(0.2, prev + delta));
+            });
+        };
+        el.addEventListener('wheel', handleWheel, { passive: false });
+        return () => el.removeEventListener('wheel', handleWheel);
+    }, []);
 
     // Space key for panning
     useEffect(() => {
@@ -303,7 +322,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
         const isWallClick = (e.target as HTMLElement).getAttribute('data-wall-id');
         const isMeasureClick = (e.target as HTMLElement).getAttribute('data-measure-id');
-        const isPanning = isSpaceHeld || e.button === 1; // Space held or middle-click = pan
+        const isPanning = isSpaceHeld || e.button === 1 || mode === 'pan'; // Space held or middle-click or pan mode
         const startCoords = getSVGCoords(e.clientX, e.clientY, mode === 'measure' || mode === 'draw');
 
         let localMeasurement: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
@@ -618,9 +637,16 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                     <button
                         onClick={() => { setMode('draw'); setTempMeasurement(null); }}
                         className={`p-2 rounded-lg transition-all ${mode === 'draw' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                        title="Dibujar / Mover tabiques (Espacio: Paneo)"
+                        title="Dibujar / Mover tabiques"
                     >
                         <PenTool size={16} />
+                    </button>
+                    <button
+                        onClick={() => { setMode('pan'); setTempMeasurement(null); }}
+                        className={`p-2 rounded-lg transition-all ${mode === 'pan' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
+                        title="Paneo (mover lienzo)"
+                    >
+                        <Hand size={16} />
                     </button>
                     <button
                         onClick={() => { setMode(mode === 'measure' ? 'draw' : 'measure'); setTempMeasurement(null); }}
@@ -637,6 +663,18 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                         className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all text-[10px] font-bold uppercase"
                     >
                         <Plus size={14} /> Muro
+                    </button>
+                    <button
+                        onClick={() => addOpening('Norte', 'door')}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-all text-[10px] font-bold uppercase"
+                    >
+                        <Plus size={14} /> Puerta
+                    </button>
+                    <button
+                        onClick={() => addOpening('Norte', 'window')}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-sky-50 text-sky-700 rounded-lg hover:bg-sky-100 transition-all text-[10px] font-bold uppercase"
+                    >
+                        <Plus size={14} /> Ventana
                     </button>
                     {customMeasurements?.length > 0 && (
                         <button onClick={clearCustomMeasurements} className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all" title="Borrar medidas">
@@ -662,7 +700,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             <div
                 ref={containerRef}
                 className="flex-1 bg-slate-50 relative overflow-hidden"
-                style={{ cursor: isSpaceHeld ? (isDragging ? 'grabbing' : 'grab') : 'crosshair' }}
+                style={{ cursor: (isSpaceHeld || mode === 'pan') ? (isDragging ? 'grabbing' : 'grab') : 'crosshair' }}
                 onMouseDown={handleMouseDown}
             >
                 <style>
@@ -1060,23 +1098,10 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                 {/* ZOOM & NAVIGATION CONTROLS */}
                 {!shouldHideUI && (
-                    <div className={`absolute ${isExpanded ? 'bottom-10 left-10' : 'bottom-6 left-6'} z-[70] flex flex-col gap-3 transition-all duration-500`}>
-                        <div className="bg-white/95 backdrop-blur-xl p-2 rounded-3xl border border-slate-200 shadow-2xl flex flex-col gap-2">
-                            <button
-                                onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}
-                                className="p-3 hover:bg-indigo-50 text-indigo-600 rounded-2xl transition-all active:scale-90"
-                                title="Acercar"
-                            >
-                                <Plus size={20} />
-                            </button>
-                            <div className="h-px bg-slate-100 mx-2"></div>
-                            <button
-                                onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}
-                                className="p-3 hover:bg-indigo-50 text-indigo-600 rounded-2xl transition-all active:scale-90"
-                                title="Alejar"
-                            >
-                                <Minus size={20} />
-                            </button>
+                    <div className={`absolute ${isExpanded ? 'bottom-8 left-8' : 'bottom-4 left-4'} z-[70] flex flex-col gap-2 transition-all duration-500`}>
+                        <div className="bg-white/95 backdrop-blur-xl p-1 rounded-xl border border-slate-200 shadow-lg flex flex-col gap-0.5">
+                            <button onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))} className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-all active:scale-90" title="Acercar"><Plus size={16} /></button>
+                            <button onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))} className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-all active:scale-90" title="Alejar"><Minus size={16} /></button>
                         </div>
                         <button
                             onClick={() => {
@@ -1089,48 +1114,29 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                 setZoom(autoZoom);
                                 setPan({ x: 0, y: 0 });
                             }}
-                            className="bg-slate-900 p-3 hover:bg-slate-800 text-white rounded-2xl shadow-2xl transition-all active:scale-95 flex items-center justify-center border border-white/10"
+                            className="bg-slate-900 p-2 hover:bg-slate-800 text-white rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center border border-white/10"
                             title="Ajustar a Pantalla"
-                        >
-                            <Repeat size={20} />
-                        </button>
-                        <div className="bg-slate-900 text-white text-[10px] font-black px-4 py-2 rounded-2xl text-center tracking-widest shadow-xl border border-white/10">
+                        ><Repeat size={14} /></button>
+                        <div className="bg-slate-900 text-white text-[9px] font-black px-3 py-1.5 rounded-xl text-center tracking-widest shadow-lg border border-white/10">
                             {Math.round(zoom * 100)}%
                         </div>
-
-                        {/* Undo / Redo Buttons */}
-                        <div className="bg-white/95 backdrop-blur-xl p-2 rounded-3xl border border-slate-200 shadow-2xl flex gap-1 items-center">
-                            <button
-                                onClick={() => undo()}
-                                disabled={historyIndex <= 0}
-                                className={`p-3 rounded-2xl transition-all active:scale-90 ${historyIndex > 0 ? 'hover:bg-amber-50 text-amber-600' : 'text-slate-200 cursor-not-allowed'}`}
-                                title="Deshacer (Ctrl+Z)"
-                            >
-                                <Undo2 size={20} />
-                            </button>
-                            <div className="w-px h-6 bg-slate-100 mx-1"></div>
-                            <button
-                                onClick={() => redo()}
-                                disabled={historyIndex >= history.length - 1}
-                                className={`p-3 rounded-2xl transition-all active:scale-90 ${historyIndex < history.length - 1 ? 'hover:bg-amber-50 text-amber-600' : 'text-slate-200 cursor-not-allowed'}`}
-                                title="Rehacer (Ctrl+Y)"
-                            >
-                                <Redo2 size={20} />
-                            </button>
+                        <div className="bg-white/95 backdrop-blur-xl p-1 rounded-xl border border-slate-200 shadow-lg flex gap-0.5 items-center">
+                            <button onClick={() => undo()} disabled={historyIndex <= 0} className={`p-2 rounded-lg transition-all active:scale-90 ${historyIndex > 0 ? 'hover:bg-amber-50 text-amber-600' : 'text-slate-200 cursor-not-allowed'}`} title="Deshacer (Ctrl+Z)"><Undo2 size={16} /></button>
+                            <button onClick={() => redo()} disabled={historyIndex >= history.length - 1} className={`p-2 rounded-lg transition-all active:scale-90 ${historyIndex < history.length - 1 ? 'hover:bg-amber-50 text-amber-600' : 'text-slate-200 cursor-not-allowed'}`} title="Rehacer (Ctrl+Y)"><Redo2 size={16} /></button>
                         </div>
                     </div>
                 )}
 
                 {/* FLOATING EDIT PANELS */}
                 {!shouldHideUI && showPanels && (
-                    <div className="absolute top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-auto max-h-[calc(100%-120px)] overflow-y-auto custom-scrollbar pr-2">
+                    <div className="absolute top-16 right-3 z-[60] flex flex-col gap-3 pointer-events-auto max-h-[calc(100%-80px)] overflow-y-auto custom-scrollbar pr-1">
                         {/* Custom Measurement Edit */}
                         {activeMeasurementId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-[32px] border border-indigo-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 relative">
-                                <button onClick={() => setActiveMeasurementId(null)} className="absolute top-4 right-4 text-slate-300 hover:text-slate-600 transition-colors"><X size={14} /></button>
-                                <div className="flex items-center justify-between mb-4">
+                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative">
+                                <button onClick={() => setActiveMeasurementId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
+                                <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Medida</h3>
-                                    <button onClick={() => { useStore.getState().removeCustomMeasurement(activeMeasurementId); setActiveMeasurementId(null); }} className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors"><Trash2 size={16} /></button>
+                                    <button onClick={() => { useStore.getState().removeCustomMeasurement(activeMeasurementId); setActiveMeasurementId(null); }} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
                                 </div>
                                 {(() => {
                                     const m = customMeasurements.find((m: any) => m.id === activeMeasurementId);
@@ -1168,49 +1174,29 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                         {/* Interior Wall Edit */}
                         {activeInteriorWallId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-[32px] border border-cyan-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 relative">
-                                <button onClick={() => setActiveInteriorWallId(null)} className="absolute top-4 right-4 text-slate-300 hover:text-slate-600 transition-colors"><X size={14} /></button>
-                                <div className="flex items-center justify-between mb-4">
+                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-cyan-200 shadow-lg w-56 relative">
+                                <button onClick={() => setActiveInteriorWallId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
+                                <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-cyan-600 uppercase tracking-widest">Tabique</h3>
-                                    <button onClick={() => removeWall(activeInteriorWallId)} className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors"><Trash2 size={16} /></button>
+                                    <button onClick={() => removeWall(activeInteriorWallId)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
                                 </div>
                                 {(() => {
                                     const wall = interiorWalls.find((w: any) => w.id === activeInteriorWallId);
                                     if (!wall) return null;
                                     return (
-                                        <div className="space-y-4">
-                                            <RangeControl
-                                                label="Largo"
-                                                value={(wall as any).length || 0}
-                                                onChange={(v) => updateInteriorWall(activeInteriorWallId, { length: v })}
-                                                min={0.5} max={10} step={0.1} unit=" m"
-                                            />
-                                            <RangeControl
-                                                label="X"
-                                                value={(wall as any).x || 0}
-                                                onChange={(v) => updateInteriorWall(activeInteriorWallId, { x: v })}
-                                                min={0} max={10} step={0.1} unit=" m"
-                                            />
-                                            <RangeControl
-                                                label="Y"
-                                                value={(wall as any).y || 0}
-                                                onChange={(v) => updateInteriorWall(activeInteriorWallId, { y: v })}
-                                                min={0} max={10} step={0.1} unit=" m"
-                                            />
-                                            <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-2">
+                                            <RangeControl label="Largo" value={(wall as any).length || 0} onChange={(v) => updateInteriorWall(activeInteriorWallId, { length: v })} min={0.5} max={15} step={0.1} unit="m" />
+                                            <RangeControl label="Pos. X" value={(wall as any).x || 0} onChange={(v) => updateInteriorWall(activeInteriorWallId, { x: v })} min={0} max={15} step={0.1} unit="m" />
+                                            <RangeControl label="Pos. Y" value={(wall as any).y || 0} onChange={(v) => updateInteriorWall(activeInteriorWallId, { y: v })} min={0} max={20} step={0.1} unit="m" />
+                                            <div className="grid grid-cols-2 gap-1.5 pt-1">
                                                 <button
                                                     onClick={() => updateInteriorWall(activeInteriorWallId, { isVertical: !(wall as any).isVertical })}
-                                                    className="py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                                                >
-                                                    Rotar
-                                                </button>
+                                                    className="py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                                >Rotar</button>
                                                 <button
                                                     onClick={() => duplicateWall(activeInteriorWallId)}
-                                                    className="py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1"
-                                                >
-                                                    <Repeat size={12} />
-                                                    Duplicar
-                                                </button>
+                                                    className="py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                                >Duplicar</button>
                                             </div>
                                         </div>
                                     );
@@ -1220,32 +1206,27 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                         {/* Opening Edit */}
                         {activeOpeningId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-[32px] border border-orange-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 relative">
-                                <button onClick={() => setActiveOpeningId(null)} className="absolute top-4 right-4 text-slate-300 hover:text-slate-600 transition-colors"><X size={14} /></button>
-                                <div className="flex items-center justify-between mb-4">
+                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-orange-200 shadow-lg w-56 relative">
+                                <button onClick={() => setActiveOpeningId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
+                                <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Abertura</h3>
-                                    <button onClick={() => removeOpening(activeOpeningId)} className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors"><Trash2 size={16} /></button>
+                                    <button onClick={() => removeOpening(activeOpeningId)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
                                 </div>
                                 {(() => {
                                     const o = openings.find((o: any) => o.id === activeOpeningId);
                                     if (!o) return null;
                                     return (
-                                        <div className="space-y-4">
-                                            <RangeControl
-                                                label="Ancho"
-                                                value={(o as any).width || ((o as any).type === 'door' ? 0.9 : 1.2)}
-                                                onChange={(v) => updateOpening(activeOpeningId, { width: v })}
-                                                min={0.4} max={5} step={0.1} unit=" m"
-                                            />
-                                            <RangeControl
-                                                label="Alto"
-                                                value={(o as any).height || ((o as any).type === 'door' ? 2.1 : 1.2)}
-                                                onChange={(v) => updateOpening(activeOpeningId, { height: v })}
-                                                min={0.4} max={3} step={0.1} unit=" m"
-                                            />
-                                            <div className="pt-2 border-t border-slate-100 text-[9px] text-slate-400 italic">
-                                                Edita las dimensiones de la {(o as any).type === 'door' ? 'puerta' : 'ventana'} seleccionada.
+                                        <div className="space-y-2">
+                                            <RangeControl label="Ancho" value={(o as any).width || ((o as any).type === 'door' ? 0.9 : 1.2)} onChange={(v) => updateOpening(activeOpeningId, { width: v })} min={0.4} max={5} step={0.1} unit="m" />
+                                            <RangeControl label="Alto" value={(o as any).height || ((o as any).type === 'door' ? 2.1 : 1.2)} onChange={(v) => updateOpening(activeOpeningId, { height: v })} min={0.4} max={3} step={0.1} unit="m" />
+                                            <RangeControl label="Pos. X" value={(o as any).x || 0} onChange={(v) => updateOpening(activeOpeningId, { x: v })} min={0} max={15} step={0.1} unit="m" />
+                                            <div className="text-[9px] text-slate-400 italic pt-1">
+                                                {(o as any).type === 'door' ? 'Puerta' : 'Ventana'} — {(o as any).side}
                                             </div>
+                                            <button
+                                                onClick={() => addOpening((o as any).side, (o as any).type)}
+                                                className="w-full py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all mt-1"
+                                            >Duplicar</button>
                                         </div>
                                     );
                                 })()}
@@ -1254,72 +1235,24 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                         {/* Perimeter Wall Edit (Extra walls) */}
                         {activeId && !['Norte', 'Sur', 'Este', 'Oeste'].includes(activeId) && (
-                            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-[32px] border border-indigo-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 relative">
-                                <button onClick={() => setActive(null, null)} className="absolute top-4 right-4 text-slate-300 hover:text-slate-600 transition-colors"><X size={14} /></button>
-                                <div className="flex items-center justify-between mb-4">
+                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative">
+                                <button onClick={() => setActive(null, null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
+                                <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Muro Exterior</h3>
-                                    <button onClick={() => removeWall(activeId)} className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors"><Trash2 size={16} /></button>
+                                    <button onClick={() => removeWall(activeId)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={14} /></button>
                                 </div>
                                 {(() => {
                                     const wall = perimeterWalls.find((w: any) => w.id === activeId);
                                     if (!wall) return null;
                                     return (
-                                        <div className="space-y-4">
-                                            <RangeControl
-                                                label="X Inicio" value={(wall as any).x1} unit="m"
-                                                onChange={(v) => updateWall(activeId, { x1: v })}
-                                                min={-20} max={20} step={0.1}
-                                            />
-                                            <RangeControl
-                                                label="Y Inicio" value={(wall as any).y1} unit="m"
-                                                onChange={(v) => updateWall(activeId, { y1: v })}
-                                                min={-20} max={20} step={0.1}
-                                            />
-                                            <RangeControl
-                                                label="X Fin" value={(wall as any).x2} unit="m"
-                                                onChange={(v) => updateWall(activeId, { x2: v })}
-                                                min={-20} max={20} step={0.1}
-                                            />
-                                            <RangeControl
-                                                label="Y Fin" value={(wall as any).y2} unit="m"
-                                                onChange={(v) => updateWall(activeId, { y2: v })}
-                                                min={-20} max={20} step={0.1}
-                                            />
+                                        <div className="space-y-2">
+                                            <RangeControl label="X Ini" value={(wall as any).x1} onChange={(v) => updateWall(activeId, { x1: v })} min={-20} max={20} step={0.1} unit="m" />
+                                            <RangeControl label="Y Ini" value={(wall as any).y1} onChange={(v) => updateWall(activeId, { y1: v })} min={-20} max={20} step={0.1} unit="m" />
+                                            <RangeControl label="X Fin" value={(wall as any).x2} onChange={(v) => updateWall(activeId, { x2: v })} min={-20} max={20} step={0.1} unit="m" />
+                                            <RangeControl label="Y Fin" value={(wall as any).y2} onChange={(v) => updateWall(activeId, { y2: v })} min={-20} max={20} step={0.1} unit="m" />
                                         </div>
                                     );
                                 })()}
-                            </div>
-                        )}
-
-                        {/* Base House Dimensions (Only visible when expanded or explicitly requested) */}
-                        {(isExpanded || (showPanels && !activeId && !activeInteriorWallId)) && (
-                            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-[32px] border border-slate-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 relative">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-2 h-2 bg-slate-900 rounded-full"></div>
-                                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Dimensiones Base</h3>
-                                </div>
-                                <div className="space-y-4">
-                                    <RangeControl
-                                        label="Largo" value={dimensions.length} unit="m"
-                                        onChange={(v) => setDimensions({ length: v })}
-                                        min={3} max={20} step={1}
-                                    />
-                                    <RangeControl
-                                        label="Ancho" value={dimensions.width} unit="m"
-                                        onChange={(v) => setDimensions({ width: v })}
-                                        min={3} max={15} step={1}
-                                    />
-                                    <div className="pt-2 border-t border-slate-100 space-y-3">
-                                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                                            <span>ALTURA MUROS</span>
-                                            <span className="text-slate-900">{dimensions.height}m</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                                            <span>CUMBRERA</span>
-                                            <span className="text-slate-900">{dimensions.ridgeHeight}m</span>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         )}
 
@@ -1330,24 +1263,22 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                             const isMinimized = minimizedPanels[r.id];
 
                             return (
-                                <div key={r.id} className="bg-white/95 backdrop-blur-xl rounded-[32px] border border-amber-200 shadow-2xl w-64 animate-in fade-in slide-in-from-right-4 overflow-hidden">
-                                    <div className="flex items-center justify-between p-5 bg-amber-50/50">
+                                <div key={r.id} className="bg-white/95 backdrop-blur-xl rounded-xl border border-amber-200 shadow-lg w-56 overflow-hidden">
+                                    <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50/50">
                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleMinimizePanel(r.id)}>
-                                            {isMinimized ? <ChevronDown size={14} className="text-amber-600" /> : <ChevronUp size={14} className="text-amber-600" />}
+                                            {isMinimized ? <ChevronDown size={12} className="text-amber-600" /> : <ChevronUp size={12} className="text-amber-600" />}
                                             <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">Forma ({r.side})</h3>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <button onClick={() => removeRecess(r.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-full transition-colors"><Trash2 size={12} /></button>
-                                        </div>
+                                        <button onClick={() => removeRecess(r.id)} className="p-1 hover:bg-red-50 text-red-500 rounded-lg transition-colors"><Trash2 size={12} /></button>
                                     </div>
                                     {!isMinimized && (
-                                        <div className="p-5 pt-0 space-y-4">
+                                        <div className="p-4 pt-2 space-y-2">
                                             <RangeControl label="Posicion" value={r.x} onChange={(v) => updateRecess(r.id, { x: v })} min={0} max={maxW - r.width} step={0.1} unit="m" />
                                             <RangeControl label="Ancho" value={r.width} onChange={(v) => updateRecess(r.id, { width: v })} min={0.5} max={maxW} step={0.1} unit="m" />
                                             <RangeControl label="Fondo" value={r.depth} onChange={(v) => updateRecess(r.id, { depth: v })} min={0.5} max={maxD * 0.8} step={0.1} unit="m" />
-                                            <div className="flex justify-between items-center p-2 bg-slate-50 rounded-xl">
+                                            <div className="flex justify-between items-center p-1.5 bg-slate-50 rounded-lg">
                                                 <span className="text-[9px] font-black text-slate-500 uppercase">Muro Base</span>
-                                                <button onClick={() => updateRecess(r.id, { hideBase: !r.hideBase })} className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all ${r.hideBase ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                <button onClick={() => updateRecess(r.id, { hideBase: !r.hideBase })} className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase transition-all ${r.hideBase ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
                                                     {r.hideBase ? 'Eliminado' : 'Visible'}
                                                 </button>
                                             </div>
@@ -1360,35 +1291,25 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                 )}
             </div>
 
-            {/* STATS OVERLAY - Hidden when expanded as per user request */}
+            {/* STATS OVERLAY */}
             {!shouldHideUI && (
-                <div className="absolute bottom-6 left-6 z-50 flex gap-3 pointer-events-none">
-                    <div className="bg-slate-900/90 backdrop-blur-md px-5 py-3 rounded-[24px] border border-white/10 shadow-2xl flex items-center gap-4">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest leading-none mb-1">Superficie</span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-black text-white">{geo.areaPiso.toFixed(2)}</span>
-                                <span className="text-[10px] font-bold text-white/40">m2</span>
-                            </div>
+                <div className="absolute bottom-4 right-4 z-50 pointer-events-none">
+                    <div className="bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-lg flex items-center gap-3">
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-white">{geo.areaPiso.toFixed(1)}</span>
+                            <span className="text-[9px] font-bold text-cyan-400">m2</span>
                         </div>
-                        <div className="w-px h-8 bg-white/10"></div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest leading-none mb-1">Paneles</span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-black text-white">{geo.totalPaneles}</span>
-                                <span className="text-[10px] font-bold text-white/40">UNID</span>
-                            </div>
+                        <div className="w-px h-4 bg-white/10"></div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-white">{geo.totalPaneles}</span>
+                            <span className="text-[9px] font-bold text-amber-400">pan</span>
                         </div>
-                        <div className="w-px h-8 bg-white/10"></div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">Perimetro</span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-black text-white">{geo.perimExt.toFixed(1)}</span>
-                                <span className="text-[10px] font-bold text-white/40">ML</span>
-                            </div>
+                        <div className="w-px h-4 bg-white/10"></div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-white">{geo.perimExt.toFixed(1)}</span>
+                            <span className="text-[9px] font-bold text-emerald-400">ml</span>
                         </div>
                     </div>
-
                 </div>
             )}
         </div>
