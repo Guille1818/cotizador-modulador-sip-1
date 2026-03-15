@@ -188,3 +188,33 @@ export interface Clipboard {
   type: 'wall';
   data: InteriorWall;
 }
+
+export type RoomType = 'dormitorio' | 'bano' | 'cocina' | 'living' | 'comedor' | 'lavadero' | 'estudio' | 'garage' | 'otro';
+
+export interface Room {
+  id: string;
+  name: string;
+  type: RoomType;
+}
+
+export interface SavedDesign {
+  id: string;
+  name: string;
+  date: string;
+  dimensions: Dimensions;
+  interiorWalls: InteriorWall[];
+  perimeterWalls: PerimeterWall[];
+  openings: Opening[];
+  facadeConfigs: Record<FacadeSide, FacadeConfig>;
+  selections: Selections;
+  foundationType: FoundationType;
+  structureType: StructureType;
+  rooms: Room[];
+  recesses: Recess[];
+  perimeterVisibility: Record<FacadeSide, boolean>;
+  // Cached stats
+  area: number;
+  totalPanels: number;
+  roomCount: number;
+  bathroomCount: number;
+}

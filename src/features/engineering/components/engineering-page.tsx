@@ -12,8 +12,10 @@ import Link from 'next/link';
 import {
     FileText, Copy, Maximize2, X,
     Square, Plus, Minus, ChevronDown, ChevronUp,
-    Box, Ruler, Eye, EyeOff, RotateCcw, Layers
+    Box, Ruler, Eye, EyeOff, RotateCcw, Layers,
+    Save, FolderOpen, Trash2, Bath, BedDouble, UtensilsCrossed, Sofa, BookOpen, Car, Tag
 } from 'lucide-react';
+import type { RoomType } from '@/shared/types';
 import html2canvas from 'html2canvas';
 
 /* ──────────────────────────────────────────────
@@ -132,6 +134,8 @@ const Engineering = () => {
         updateRecess, removeRecess, clearRecesses, addLShape, addCShape,
         togglePerimeterVisibility,
         addWall, removeWall,
+        rooms, addRoom, updateRoom, removeRoom,
+        savedDesigns, saveDesign, loadDesign, deleteDesign,
     } = useStore();
 
     /* ── default selections bootstrap ── */
@@ -162,6 +166,8 @@ const Engineering = () => {
     const [ambientes, setAmbientes] = useState<number>(interiorWalls.length + 1);
     const [activeTab, setActiveTab] = useState<'plano' | '3d'>('plano');
     const [showReport, setShowReport] = useState(false);
+    const [showDesigns, setShowDesigns] = useState(false);
+    const [saveName, setSaveName] = useState('');
 
     useEffect(() => { setAmbientes(interiorWalls.length + 1); }, [interiorWalls.length]);
 
@@ -463,6 +469,99 @@ const Engineering = () => {
                             <p className="text-[10px] text-slate-400 font-medium">{geo.areaPiso.toFixed(1)} m2</p>
                         </div>
                     </div>
+
+                    {/* Rooms / Ambientes */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ambientes</span>
+                            <button
+                                onClick={() => addRoom(`Ambiente ${rooms.length + 1}`, 'otro')}
+                                className="text-[9px] font-bold text-orange-500 hover:text-orange-600 uppercase flex items-center gap-1"
+                            ><Plus size={10} /> Agregar</button>
+                        </div>
+                        {rooms.length === 0 ? (
+                            <p className="text-[9px] text-slate-300 italic text-center py-2">Sin ambientes definidos</p>
+                        ) : (
+                            <div className="space-y-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                {rooms.map(room => (
+                                    <div key={room.id} className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2 py-1.5">
+                                        <select
+                                            value={room.type}
+                                            onChange={(e) => updateRoom(room.id, { type: e.target.value as RoomType })}
+                                            className="bg-transparent text-[9px] font-bold text-slate-500 outline-none w-20 cursor-pointer"
+                                        >
+                                            <option value="dormitorio">Dormitorio</option>
+                                            <option value="bano">Bano</option>
+                                            <option value="cocina">Cocina</option>
+                                            <option value="living">Living</option>
+                                            <option value="comedor">Comedor</option>
+                                            <option value="lavadero">Lavadero</option>
+                                            <option value="estudio">Estudio</option>
+                                            <option value="garage">Garage</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={room.name}
+                                            onChange={(e) => updateRoom(room.id, { name: e.target.value })}
+                                            className="flex-1 text-[10px] font-bold text-slate-700 bg-transparent outline-none min-w-0"
+                                        />
+                                        <button onClick={() => removeRoom(room.id)} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0"><Trash2 size={10} /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Save & Gallery */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                const name = saveName.trim() || `Diseño ${savedDesigns.length + 1}`;
+                                saveDesign(name, area, geo.totalPaneles);
+                                setSaveName('');
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors"
+                        ><Save size={12} /> Guardar</button>
+                        <button
+                            onClick={() => setShowDesigns(!showDesigns)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors ${showDesigns ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        ><FolderOpen size={12} /> Mis Diseños ({savedDesigns.length})</button>
+                    </div>
+
+                    {/* Save name input */}
+                    <input
+                        type="text"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                        placeholder="Nombre del diseño (opcional)..."
+                        className="w-full px-3 py-1.5 text-[10px] bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-orange-300 text-slate-600 font-medium"
+                    />
+
+                    {/* Saved Designs Gallery */}
+                    {showDesigns && savedDesigns.length > 0 && (
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-2 space-y-1.5 max-h-[250px] overflow-y-auto custom-scrollbar">
+                            {savedDesigns.map(d => (
+                                <div key={d.id} className="bg-white rounded-lg p-2.5 border border-slate-100 hover:border-orange-200 transition-colors group">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[10px] font-black text-slate-800 truncate">{d.name}</span>
+                                        <span className="text-[8px] text-slate-400">{new Date(d.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[9px] text-slate-500 font-medium">
+                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded font-bold">{d.area} m2</span>
+                                        <span>{d.dimensions.width}x{d.dimensions.length}m</span>
+                                        <span>{d.roomCount} amb</span>
+                                        {d.bathroomCount > 0 && <span>{d.bathroomCount} bano{d.bathroomCount > 1 ? 's' : ''}</span>}
+                                        <span>{d.totalPanels} pan</span>
+                                    </div>
+                                    <div className="flex gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => loadDesign(d.id)} className="flex-1 py-1 bg-orange-500 text-white rounded-md text-[8px] font-bold uppercase hover:bg-orange-400 transition-colors">Cargar</button>
+                                        <button onClick={() => deleteDesign(d.id)} className="px-2 py-1 bg-slate-100 text-rose-500 rounded-md text-[8px] font-bold uppercase hover:bg-rose-50 transition-colors">Borrar</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Technical Report (expandable) */}
                     <div className={`bg-slate-900 rounded-2xl overflow-hidden flex flex-col ${showReport ? 'flex-1' : ''}`}>

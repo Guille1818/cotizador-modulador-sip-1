@@ -19,6 +19,9 @@ import type {
   Defaults,
   Clipboard,
   Recess,
+  Room,
+  RoomType,
+  SavedDesign,
 } from '@/shared/types';
 
 const SNAP_VALUE = 0.05; // 5cm snapping for easier alignment
@@ -86,6 +89,12 @@ interface StoreState {
   structureType: StructureType;
   prices: Product[];
   customMeasurements: CustomMeasurement[];
+
+  // --- ROOMS ---
+  rooms: Room[];
+
+  // --- SAVED DESIGNS ---
+  savedDesigns: SavedDesign[];
 
   // --- CLIPBOARD ---
   clipboard: Clipboard | null;
@@ -163,6 +172,16 @@ interface StoreState {
 
   // --- BUDGET ---
   generateBudgetNumber: () => void;
+
+  // --- ROOMS ---
+  addRoom: (name: string, type: RoomType) => void;
+  updateRoom: (id: string, updates: Partial<Room>) => void;
+  removeRoom: (id: string) => void;
+
+  // --- SAVED DESIGNS ---
+  saveDesign: (name: string, area: number, totalPanels: number) => void;
+  loadDesign: (id: string) => void;
+  deleteDesign: (id: string) => void;
 
   resetProject: () => void;
 }
@@ -256,6 +275,12 @@ export const useStore = create<StoreState>()(
 
       // --- SNAPSHOTS ---
       snapshots: [],
+
+      // --- ROOMS ---
+      rooms: [],
+
+      // --- SAVED DESIGNS ---
+      savedDesigns: [],
 
       // --- ENGINEERING STATE ---
       dimensions: {
@@ -664,6 +689,68 @@ export const useStore = create<StoreState>()(
         }
       })),
 
+      // --- ROOMS ---
+      addRoom: (name: string, type: RoomType) => set(state => ({
+        rooms: [...state.rooms, { id: generateUUID(), name, type }]
+      })),
+      updateRoom: (id: string, updates: Partial<Room>) => set(state => ({
+        rooms: state.rooms.map(r => r.id === id ? { ...r, ...updates } : r)
+      })),
+      removeRoom: (id: string) => set(state => ({
+        rooms: state.rooms.filter(r => r.id !== id)
+      })),
+
+      // --- SAVED DESIGNS ---
+      saveDesign: (name: string, area: number, totalPanels: number) => {
+        const state = get();
+        const bathroomCount = state.rooms.filter(r => r.type === 'bano').length;
+        const design: SavedDesign = {
+          id: generateUUID(),
+          name,
+          date: new Date().toISOString(),
+          dimensions: { ...state.dimensions },
+          interiorWalls: JSON.parse(JSON.stringify(state.interiorWalls)),
+          perimeterWalls: JSON.parse(JSON.stringify(state.perimeterWalls)),
+          openings: JSON.parse(JSON.stringify(state.openings)),
+          facadeConfigs: JSON.parse(JSON.stringify(state.facadeConfigs)),
+          selections: { ...state.selections },
+          foundationType: state.foundationType,
+          structureType: state.structureType,
+          rooms: JSON.parse(JSON.stringify(state.rooms)),
+          recesses: JSON.parse(JSON.stringify(state.project.recesses || [])),
+          perimeterVisibility: { ...state.project.perimeterVisibility },
+          area,
+          totalPanels,
+          roomCount: state.rooms.length,
+          bathroomCount,
+        };
+        set({ savedDesigns: [...state.savedDesigns, design] });
+      },
+      loadDesign: (id: string) => {
+        const state = get();
+        const design = state.savedDesigns.find(d => d.id === id);
+        if (!design) return;
+        set({
+          dimensions: { ...design.dimensions },
+          interiorWalls: JSON.parse(JSON.stringify(design.interiorWalls)),
+          perimeterWalls: JSON.parse(JSON.stringify(design.perimeterWalls)),
+          openings: JSON.parse(JSON.stringify(design.openings)),
+          facadeConfigs: JSON.parse(JSON.stringify(design.facadeConfigs)),
+          selections: { ...design.selections },
+          foundationType: design.foundationType,
+          structureType: design.structureType,
+          rooms: JSON.parse(JSON.stringify(design.rooms)),
+          project: {
+            ...state.project,
+            recesses: JSON.parse(JSON.stringify(design.recesses || [])),
+            perimeterVisibility: { ...design.perimeterVisibility },
+          },
+        });
+      },
+      deleteDesign: (id: string) => set(state => ({
+        savedDesigns: state.savedDesigns.filter(d => d.id !== id)
+      })),
+
       resetProject: () => set({
         dimensions: { width: 6, length: 8, height: 2.44, ridgeHeight: 3.5 },
         facadeConfigs: {
@@ -673,12 +760,12 @@ export const useStore = create<StoreState>()(
           Oeste: { type: 'recto', hBase: 2.44, hMax: 2.44 }
         },
         perimeterWalls: [{ id: 'Norte', side: 'Norte' }, { id: 'Sur', side: 'Sur' }, { id: 'Este', side: 'Este' }, { id: 'Oeste', side: 'Oeste' }],
-        interiorWalls: [], activeId: null, activeType: null, activeOpeningId: null, activeRecessId: null, openings: [], showBeams: true, showRoofPlates: true, beamOffset: 0, selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true }, foundationType: 'platea', structureType: 'madera', project: { budgetNumber: `LFP-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`, status: 'Borrador', clientName: '', cuit: '', phone: '', email: '', location: '', date: new Date().toISOString().split('T')[0], projectInfo: { benefits: '', extraNotes: '', adjustmentPercentage: 0, showEarlyPaymentDiscount: true }, recesses: [], overrides: {}, perimeterVisibility: { Norte: true, Sur: true, Este: true, Oeste: true } }, snapshots: [], customMeasurements: []
+        interiorWalls: [], activeId: null, activeType: null, activeOpeningId: null, activeRecessId: null, openings: [], showBeams: true, showRoofPlates: true, beamOffset: 0, selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true }, foundationType: 'platea', structureType: 'madera', project: { budgetNumber: `LFP-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`, status: 'Borrador', clientName: '', cuit: '', phone: '', email: '', location: '', date: new Date().toISOString().split('T')[0], projectInfo: { benefits: '', extraNotes: '', adjustmentPercentage: 0, showEarlyPaymentDiscount: true }, recesses: [], overrides: {}, perimeterVisibility: { Norte: true, Sur: true, Este: true, Oeste: true } }, snapshots: [], customMeasurements: [], rooms: []
       })
     }),
     {
       name: 'sip-project-storage',
-      version: 5,
+      version: 6,
       migrate: (persistedState) => {
         const init = {
           project: { budgetNumber: '', status: 'Borrador', clientName: '', cuit: '', phone: '', email: '', location: '', date: new Date().toISOString().split('T')[0], projectInfo: { benefits: '', extraNotes: '', adjustmentPercentage: 0, showEarlyPaymentDiscount: true }, recesses: [], perimeterVisibility: { Norte: true, Sur: true, Este: true, Oeste: true }, overrides: {} },
