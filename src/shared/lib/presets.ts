@@ -1,3 +1,10 @@
+export interface PresetInteriorWall {
+  x: number;
+  y: number;
+  length: number;
+  isVertical: boolean;
+}
+
 export interface HousePreset {
   id: string;
   name: string;
@@ -17,6 +24,7 @@ export interface HousePreset {
   roofId: string;
   floorId: string;
   icon: string;
+  interiorWalls?: PresetInteriorWall[];
 }
 
 export const HOUSE_PRESETS: HousePreset[] = [
@@ -39,6 +47,12 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'SAND-OSB-80-M2',
     floorId: 'PISO-OSB-70',
     icon: '🏠',
+    interiorWalls: [
+      // Bano: pared horizontal separando 1.5m al fondo-izquierda
+      { x: 0, y: 4.5, length: 2, isVertical: false },
+      // Bano: pared vertical cerrando el bano
+      { x: 2, y: 4.5, length: 1.5, isVertical: true },
+    ],
   },
   {
     id: 'monoambiente-amplio',
@@ -59,6 +73,11 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'TECHO-OSB-70',
     floorId: 'PISO-OSB-70',
     icon: '🏡',
+    interiorWalls: [
+      // Bano: separacion al fondo-izquierda
+      { x: 0, y: 5.5, length: 2.5, isVertical: false },
+      { x: 2.5, y: 5.5, length: 1.5, isVertical: true },
+    ],
   },
   {
     id: 'casa-2-ambientes',
@@ -79,6 +98,12 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'TECHO-OSB-70',
     floorId: 'PISO-OSB-70',
     icon: '🏘',
+    interiorWalls: [
+      // Divisor principal: living (frente) / dormitorio+bano (fondo)
+      { x: 0, y: 5, length: 6, isVertical: false },
+      // Bano separado del dormitorio
+      { x: 0, y: 5, length: 3, isVertical: true },
+    ],
   },
   {
     id: 'casa-3-ambientes',
@@ -99,6 +124,16 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'TECHO-OSB-70',
     floorId: 'PISO-OSB-70',
     icon: '🏠',
+    interiorWalls: [
+      // Pasillo/cocina horizontal a 4m del norte
+      { x: 0, y: 4, length: 8, isVertical: false },
+      // Divisor dormitorios al fondo
+      { x: 0, y: 7, length: 8, isVertical: false },
+      // Pared entre dormitorio 1 y dormitorio 2
+      { x: 4, y: 4, length: 3, isVertical: true },
+      // Bano (fondo izquierda)
+      { x: 2.5, y: 7, length: 3, isVertical: true },
+    ],
   },
   {
     id: 'casa-4-ambientes',
@@ -119,6 +154,18 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'TECHO-OSB-70',
     floorId: 'PISO-OSB-70',
     icon: '🏗',
+    interiorWalls: [
+      // Pasillo central horizontal
+      { x: 0, y: 4.5, length: 10, isVertical: false },
+      // Cocina separada
+      { x: 0, y: 8.5, length: 10, isVertical: false },
+      // Divisor dormitorio 1 / dormitorio 2
+      { x: 5, y: 4.5, length: 4, isVertical: true },
+      // Divisor dormitorio 3 / bano
+      { x: 3, y: 8.5, length: 3.5, isVertical: true },
+      // Bano: pared vertical
+      { x: 7, y: 8.5, length: 3.5, isVertical: true },
+    ],
   },
   {
     id: 'cabana',
@@ -139,6 +186,11 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'SAND-OSB-80-M2',
     floorId: 'PISO-OSB-70',
     icon: '⛺',
+    interiorWalls: [
+      // Bano pequeno al fondo
+      { x: 0, y: 3.5, length: 1.8, isVertical: false },
+      { x: 1.8, y: 3.5, length: 1.5, isVertical: true },
+    ],
   },
   {
     id: 'oficina-local',
@@ -159,6 +211,10 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'SAND-OSB-80-M2',
     floorId: 'PISO-OSB-70',
     icon: '🏢',
+    interiorWalls: [
+      // Sala de reuniones separada
+      { x: 0, y: 3.5, length: 5, isVertical: false },
+    ],
   },
   {
     id: 'duplex',
@@ -179,5 +235,15 @@ export const HOUSE_PRESETS: HousePreset[] = [
     roofId: 'TECHO-OSB-70',
     floorId: 'PISO-OSB-70',
     icon: '🏛',
+    interiorWalls: [
+      // Medianera central (divide las 2 unidades)
+      { x: 3, y: 0, length: 10, isVertical: true },
+      // Bano unidad izquierda
+      { x: 0, y: 7, length: 3, isVertical: false },
+      { x: 0, y: 7, length: 3, isVertical: true },
+      // Bano unidad derecha
+      { x: 3, y: 7, length: 3, isVertical: false },
+      { x: 6, y: 7, length: 3, isVertical: true },
+    ],
   },
 ];

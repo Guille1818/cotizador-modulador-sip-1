@@ -33,26 +33,32 @@ const AdminPage = () => {
     const formulaMapping: Record<string, string> = {
         'SAND': 'Area Bruta de Techo (m2)',
         'PANELES': 'Area Bruta / 2.97 (Redondeado Subida)',
-        'VIGA': '(Largo / 0.6) * Ancho * 1.1',
-        'MAD_VINC': '(Paneles Muro/Tab/Piso) * 6.6',
-        'SOLERA': '(Paneles Muro/Tab) * 1.3',
-        'CLAVADERA': 'Perimetro Exterior * 5.5',
-        'VARILLA': '(Paneles Muro/Tab * 1.3) / 5',
-        'ANCLAJE_QUIMICO': '(Paneles Muro/Tab * 1.3) / 10',
-        'FIX_6X1_5': '(Paneles Totales * 55) + (Perimetro Ab. * 6.6)',
-        'FIX_6X2': '(Paneles Muro/Tab) * 5.3',
-        'FIX_8X3': 'Paneles Muro * 13',
-        'TORX_120': 'Paneles Muro * 4',
-        'TORX_140': '(Area Techo + Piso) * 3.5',
-        'TORN_HEX_3': 'Area Techo * 4.5',
-        'HEX_T2_14X5': 'Area Techo * 4.5 (Sandwich)',
-        'KIT_TUERCA': 'Cant. Varillas * 5',
-        'ESPUMA_PU': '(Paneles Totales * 8) / 25',
-        'PEG_PU': '(Paneles Muro/Tab * 1.2) / 4',
-        'BARRERA': '(Area Muros * 1.1 + Area Techo * 1.1) / 30',
-        'MEMB_LIQ': '((P. Muro * 1.3 + P. Tab * 1.3) * 0.15 + 30) / 20',
-        'MEMB_AUTO': '(Paneles Muro/Tab * 1.3) / 25',
-        'CHAPA_C27': 'Area de Techo (Directo)'
+        'MAD_VINC_2X3': 'Paneles Muros * 7',
+        'MAD_VINC_PISO_2X3': 'Paneles Piso * 5 (solo si incluye piso)',
+        'MAD_SOL_BASE': 'Paneles Muros * 1',
+        'MAD_ACOMP_SOL': 'Paneles Muros * 1',
+        'MAD_VIGA_TECHO_3X6': 'Paneles Techo Conv * 3.5 (solo techo conv)',
+        'MAD_CLAV_2X2': 'Paneles Muros * 3.5',
+        'MAD_CLAV_TECHO_2X2': 'Paneles Techo Conv * 4 (solo techo conv)',
+        'FLEJES_TECHO': 'Paneles Techo Conv * 3.25 (solo techo conv)',
+        'MAD_VIGA_PISO_3X6': 'Area Piso * 2.5 * 1.1 (si incluye piso)',
+        'FIX_6X1_5': '(Paneles Muros + Paneles Piso) * 55',
+        'FIX_6X2': 'Paneles Muros * 3',
+        'TORX_120': 'Paneles Muros * 2.25',
+        'TORX_140': 'Paneles Muros * 5',
+        'TORN_HEX_3': 'Paneles Techo Conv * 28 (solo techo conv)',
+        'HEX_T2_14X5': 'Paneles Techo Sandwich * 5.5 (solo sandwich)',
+        'FIX_6X1': 'Paneles Techo Conv * 11 (solo techo conv)',
+        'FIX_8X3': 'Paneles Muros * 8 + Paneles Techo Conv * 10',
+        'VARILLA_12': 'max(1, Paneles Muros * 0.22) (solo platea)',
+        'KIT_TUERCA': 'Cant. Varillas * 3',
+        'ANCLAJE_QUIMICO': 'max(1, Paneles Muros * 0.12)',
+        'ESPUMA_PU': 'max(1, Total Paneles * 0.22)',
+        'PEG_PU': 'max(1, Paneles Muros * 0.05)',
+        'MEMB_LIQ': 'max(1, Paneles Muros * 0.035)',
+        'MEMB_AUTO': 'max(1, Paneles Muros * 0.03)',
+        'CHAPA_C27': 'ceil(Paneles Techo Conv * 2.977)',
+        'BARRERA': 'max(1, ceil(Paneles Muros / 12))'
     };
 
     return (
@@ -74,7 +80,7 @@ const AdminPage = () => {
 
             {/* DEFAULTS SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 space-y-6 relative group">
+                <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-6 relative group">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600">
@@ -103,7 +109,7 @@ const AdminPage = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 space-y-6 relative group">
+                <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-6 relative group">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
@@ -134,7 +140,7 @@ const AdminPage = () => {
             </div>
 
             {/* ITEMS MANAGEMENT */}
-            <div className="bg-white rounded-[40px] shadow-xl border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
                 <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
                         <div className="w-2 h-6 bg-orange-500 rounded-full"></div>
@@ -267,7 +273,7 @@ const AdminPage = () => {
             </div>
 
             {/* ENHANCED FORMULAS REFERENCE SECTION */}
-            <div className="bg-slate-900 rounded-[40px] p-10 shadow-3xl border border-slate-800 text-slate-300 relative overflow-hidden">
+            <div className="bg-slate-900 rounded-2xl p-10 shadow-3xl border border-slate-800 text-slate-300 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
 
                 <div className="flex items-center gap-6 mb-12 relative z-10">

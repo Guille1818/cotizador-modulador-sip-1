@@ -78,7 +78,7 @@ const BudgetPage = () => {
             {/* PROJECT HEADER & INFO */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Client Data Form */}
-                <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-6">
+                <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
                     <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
                         <div className="w-10 h-10 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-200">
                             <User size={20} />
@@ -178,7 +178,7 @@ const BudgetPage = () => {
                 </div>
 
                 {/* Summary Card */}
-                <div className="bg-slate-900 rounded-[40px] p-8 text-white flex flex-col justify-between shadow-2xl relative overflow-hidden group">
+                <div className="bg-slate-900 rounded-2xl p-8 text-white flex flex-col justify-between shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-orange-500/20 transition-all"></div>
 
                     <div className="space-y-6 relative z-10">
@@ -236,7 +236,7 @@ const BudgetPage = () => {
 
             {/* ADJUSTMENT & TERMS SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-100 flex flex-col gap-6">
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-6">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
                             <Percent size={24} />
@@ -273,7 +273,7 @@ const BudgetPage = () => {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
                             <FileText size={24} />
@@ -309,7 +309,7 @@ const BudgetPage = () => {
 
 
             {/* PANEL CONFIGURATION SECTION */}
-            <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600">
                         <Settings size={24} />
@@ -405,7 +405,7 @@ const BudgetPage = () => {
 
 
             {/* PANEL SUMMARY SECTION */}
-            <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-100">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600">
                         <Home size={24} />
@@ -449,7 +449,7 @@ const BudgetPage = () => {
             </div>
 
             {/* POTENTIAL SAVINGS SECTION */}
-            <div className="bg-slate-50 p-6 md:p-8 rounded-[40px] border border-slate-200">
+            <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-white">
                         <Percent size={20} />
@@ -513,7 +513,7 @@ const BudgetPage = () => {
             </div>
 
             {/* BUDGET TABLE */}
-            <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                         <div className="w-1.5 h-6 bg-orange-500 rounded-full"></div>

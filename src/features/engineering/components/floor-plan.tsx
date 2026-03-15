@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
-import { Plus, Minus, Move, RotateCcw, MousePointer2, PenTool, Hash, Send, Trash2, Repeat, Square, BarChart3, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2 } from 'lucide-react';
+import { Plus, Minus, RotateCcw, PenTool, Trash2, Repeat, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2 } from 'lucide-react';
 
 interface RangeControlProps {
     label: string;
@@ -110,7 +110,8 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const [showPanels, setShowPanels] = useState(true);
     const [minimizedPanels, setMinimizedPanels] = useState<Record<string, boolean>>({});
-    const [mode, setMode] = useState('move'); // 'move', 'measure', 'draw_wall'
+    const [mode, setMode] = useState('draw'); // 'draw' (default: draw walls + move walls), 'measure'
+    const [isSpaceHeld, setIsSpaceHeld] = useState(false);
     const [tempMeasurement, setTempMeasurement] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null); // { start: {x,y}, end: {x,y} }
     const [tempWall, setTempWall] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null); // { start: {x,y}, end: {x,y} }
     const [draggingWallId, setDraggingWallId] = useState<string | null>(null);
@@ -137,6 +138,20 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             setPan({ x: 0, y: 0 });
         }
     }, [isExpanded, isPrint, dimensions.width, dimensions.length]);
+
+    // Space key for panning
+    useEffect(() => {
+        const handleSpaceDown = (e: KeyboardEvent) => {
+            if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+            if (e.code === 'Space' && !e.repeat) { e.preventDefault(); setIsSpaceHeld(true); }
+        };
+        const handleSpaceUp = (e: KeyboardEvent) => {
+            if (e.code === 'Space') { setIsSpaceHeld(false); }
+        };
+        window.addEventListener('keydown', handleSpaceDown);
+        window.addEventListener('keyup', handleSpaceUp);
+        return () => { window.removeEventListener('keydown', handleSpaceDown); window.removeEventListener('keyup', handleSpaceUp); };
+    }, []);
 
     // Keyboard Delete Functionality
     useEffect(() => {
@@ -288,7 +303,8 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
         const isWallClick = (e.target as HTMLElement).getAttribute('data-wall-id');
         const isMeasureClick = (e.target as HTMLElement).getAttribute('data-measure-id');
-        const startCoords = getSVGCoords(e.clientX, e.clientY, mode === 'measure');
+        const isPanning = isSpaceHeld || e.button === 1; // Space held or middle-click = pan
+        const startCoords = getSVGCoords(e.clientX, e.clientY, mode === 'measure' || mode === 'draw');
 
         let localMeasurement: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
         let localWallData: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
@@ -304,32 +320,33 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             return;
         }
 
-        if (isWallClick && mode !== 'measure' && mode !== 'draw_wall') {
+        // Wall click = drag the wall (in draw mode only)
+        if (isWallClick && mode !== 'measure' && !isPanning) {
             setDraggingWallId(isWallClick);
             setActiveInteriorWallId(isWallClick);
             setIsDragging(true);
-        } else if ((e.target as HTMLElement).closest('svg') || mode === 'measure' || mode === 'draw_wall') {
-            const isInsideSVG = (e.target as HTMLElement).closest('svg');
-            if (isInsideSVG) {
-                // Clear selections if clicking background
-                if ((e.target as HTMLElement).id === 'canvas-bg' || (e.target as HTMLElement).tagName === 'svg') {
-                    setActiveInteriorWallId(null);
-                    setActiveOpeningId(null);
-                    setActiveRecessId(null);
-                    setActiveMeasurementId(null);
-                    setActive(null, null);
-                }
+        } else if ((e.target as HTMLElement).closest('svg')) {
+            // Clear selections if clicking background
+            if ((e.target as HTMLElement).id === 'canvas-bg' || (e.target as HTMLElement).tagName === 'svg') {
+                setActiveInteriorWallId(null);
+                setActiveOpeningId(null);
+                setActiveRecessId(null);
+                setActiveMeasurementId(null);
+                setActive(null, null);
+            }
 
-                if (mode === 'measure') {
-                    localMeasurement = { start: startCoords, end: startCoords };
-                    setTempMeasurement(localMeasurement);
-                } else if (mode === 'draw_wall') {
-                    localWallData = { start: startCoords, end: startCoords };
-                    setTempWall(localWallData);
-                }
+            if (isPanning) {
+                // Panning mode (Space held or middle-click)
+                setIsDragging(true);
+            } else if (mode === 'measure') {
+                localMeasurement = { start: startCoords, end: startCoords };
+                setTempMeasurement(localMeasurement);
                 setIsDragging(true);
             } else {
-                return;
+                // Default "draw" mode: click+drag on empty canvas draws a wall
+                localWallData = { start: startCoords, end: startCoords };
+                setTempWall(localWallData);
+                setIsDragging(true);
             }
         } else {
             return;
@@ -341,13 +358,14 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
         // Initial wall position for dragging
         let initialWallPos: { x: number; y: number } | null = null;
-        if (isWallClick && mode !== 'measure' && mode !== 'draw_wall') {
+        if (isWallClick && mode !== 'measure' && !isPanning) {
             const wall = interiorWalls.find((w: any) => w.id === isWallClick);
             if (wall) initialWallPos = { x: (wall as any).x, y: (wall as any).y };
         }
 
         const onMouseMove = (moveEvent: MouseEvent) => {
             if (isWallClick && initialWallPos) {
+                // Dragging an existing wall
                 const currentCoords = getSVGCoords(moveEvent.clientX, moveEvent.clientY, true);
                 const startCoordsRef = getSVGCoords(startX, startY, true);
                 const dx = (currentCoords.x - startCoordsRef.x) / BASE_SCALE;
@@ -356,6 +374,12 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                 updateInteriorWall(isWallClick, {
                     x: Math.max(0, Math.min(w, initialWallPos.x + dx)),
                     y: Math.max(0, Math.min(l, initialWallPos.y + dy))
+                });
+            } else if (isPanning) {
+                // Panning
+                setPan({
+                    x: startPan.x + (moveEvent.clientX - startX),
+                    y: startPan.y + (moveEvent.clientY - startY)
                 });
             } else if (mode === 'measure') {
                 const currentCoords = getSVGCoords(moveEvent.clientX, moveEvent.clientY, true);
@@ -371,15 +395,11 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                 localMeasurement = { start: startCoords, end: snappedEnd };
                 setTempMeasurement(localMeasurement);
-            } else if (mode === 'draw_wall') {
+            } else {
+                // Drawing a new wall
                 const currentCoords = getSVGCoords(moveEvent.clientX, moveEvent.clientY, true);
                 localWallData = { start: startCoords, end: currentCoords };
                 setTempWall(localWallData);
-            } else {
-                setPan({
-                    x: startPan.x + (moveEvent.clientX - startX),
-                    y: startPan.y + (moveEvent.clientY - startY)
-                });
             }
         };
 
@@ -397,7 +417,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                 setTempMeasurement(null);
             }
 
-            if (mode === 'draw_wall' && localWallData) {
+            if (!isPanning && mode !== 'measure' && localWallData) {
                 const dx = Math.abs(localWallData.end.x - localWallData.start.x);
                 const dy = Math.abs(localWallData.end.y - localWallData.start.y);
                 const isVertical = dy > dx;
@@ -591,68 +611,50 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white relative overflow-hidden rounded-[40px] border border-slate-200 shadow-sm">
+        <div className="flex flex-col h-full bg-white relative overflow-hidden">
             {/* TOOLBAR */}
             {!shouldHideUI && (
-                <div className={`absolute ${isExpanded ? 'top-8' : 'top-4'} left-1/2 -translate-x-1/2 z-50 flex bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-slate-200 shadow-2xl gap-2 items-center transition-all duration-500`}>
+                <div className={`absolute ${isExpanded ? 'top-6' : 'top-3'} left-1/2 -translate-x-1/2 z-50 flex bg-white/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 shadow-xl gap-1.5 items-center`}>
                     <button
-                        onClick={() => {
-                            const newWall = { x1: w / 2 - 1.5, y1: -l / 2 - 1, x2: w / 2 + 1.5, y2: -l / 2 - 1, type: 'perimeter' };
-                            addWall('perimeter', newWall);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95"
-                    >
-                        <Plus size={16} />
-                        Muro Exterior
-                    </button>
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                    <button
-                        onClick={() => {
-                            const newMode = mode === 'draw_wall' ? 'move' : 'draw_wall';
-                            setMode(newMode);
-                            if (newMode === 'draw_wall') {
-                                setTempWall(null);
-                                setTempMeasurement(null);
-                            }
-                        }}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 ${mode === 'draw_wall' ? 'bg-rose-600 text-white' : 'bg-white text-rose-600 border border-rose-100 hover:bg-rose-50'}`}
+                        onClick={() => { setMode('draw'); setTempMeasurement(null); }}
+                        className={`p-2 rounded-lg transition-all ${mode === 'draw' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
+                        title="Dibujar / Mover tabiques (Espacio: Paneo)"
                     >
                         <PenTool size={16} />
-                        {isExpanded ? 'Dibujar Tabique' : 'Dibujar'}
                     </button>
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                    <button
+                        onClick={() => { setMode(mode === 'measure' ? 'draw' : 'measure'); setTempMeasurement(null); }}
+                        className={`p-2 rounded-lg transition-all ${mode === 'measure' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
+                        title="Medir"
+                    >
+                        <Ruler size={16} />
+                    </button>
+                    <div className="w-px h-5 bg-slate-200"></div>
                     <button
                         onClick={() => {
-                            const newMode = mode === 'measure' ? 'move' : 'measure';
-                            setMode(newMode);
-                            if (newMode === 'move') setTempMeasurement(null);
+                            addWall('perimeter', { x1: w / 2 - 1.5, y1: -l / 2 - 1, x2: w / 2 + 1.5, y2: -l / 2 - 1, type: 'perimeter' });
                         }}
-                        className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${mode === 'measure' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                        title="Herramienta de Medicion"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all text-[10px] font-bold uppercase"
                     >
-                        <Ruler size={18} />
-                        {isExpanded && <span className="text-[9px] font-black uppercase tracking-widest">Regla</span>}
+                        <Plus size={14} /> Muro
                     </button>
                     {customMeasurements?.length > 0 && (
-                        <button
-                            onClick={clearCustomMeasurements}
-                            className="p-2.5 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-all flex items-center gap-2"
-                            title="Borrar todas las medidas"
-                        >
-                            <Trash2 size={16} />
-                            {isExpanded && <span className="text-[9px] font-black uppercase tracking-widest">Limpiar</span>}
+                        <button onClick={clearCustomMeasurements} className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all" title="Borrar medidas">
+                            <Trash2 size={14} />
                         </button>
                     )}
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                    <button onClick={resetProject} className="p-2.5 text-slate-300 hover:text-rose-500 transition-colors" title="Borrar Todo"><RotateCcw size={18} /></button>
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                    <div className="w-px h-5 bg-slate-200"></div>
+                    <button onClick={resetProject} className="p-2 text-slate-300 hover:text-rose-500 transition-colors rounded-lg" title="Borrar Todo"><RotateCcw size={14} /></button>
                     <button
                         onClick={() => setShowPanels(!showPanels)}
-                        className={`p-2.5 rounded-xl transition-all ${showPanels ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-50'}`}
-                        title={showPanels ? "Ocultar Controles" : "Mostrar Controles"}
+                        className={`p-2 rounded-lg transition-all ${showPanels ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-50'}`}
+                        title={showPanels ? "Ocultar Paneles" : "Mostrar Paneles"}
                     >
-                        <Layout size={18} />
+                        <Layout size={14} />
                     </button>
+                    {isSpaceHeld && (
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-1">Paneo</span>
+                    )}
                 </div>
             )}
 
@@ -660,7 +662,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             <div
                 ref={containerRef}
                 className="flex-1 bg-slate-50 relative overflow-hidden"
-                style={{ cursor: mode === 'move' ? (isDragging ? 'grabbing' : 'grab') : 'crosshair' }}
+                style={{ cursor: isSpaceHeld ? (isDragging ? 'grabbing' : 'grab') : 'crosshair' }}
                 onMouseDown={handleMouseDown}
             >
                 <style>
@@ -1008,7 +1010,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                     )}
 
                                     {/* Crosshair when measuring or drawing */}
-                                    {(mode === 'measure' || mode === 'draw_wall') && !tempMeasurement && !tempWall && (
+                                    {!isSpaceHeld && !tempMeasurement && !tempWall && (
                                         <CrosshairOverlay getSVGCoords={getSVGCoords} BASE_SCALE={BASE_SCALE} />
                                     )}
                                     {(customMeasurements || []).map((m: any) => {

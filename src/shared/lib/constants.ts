@@ -31,7 +31,12 @@ export const INITIAL_PRICES: Product[] = [
     { id: "MAD_VIGA_TECHO_VIC", name: "Madera pino macizo victoria 3x6x4.27Mts", unit: "UNID", price: 12544, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_MULTI", name: "Madera pino multilaminada 3x6Mts", unit: "UNID", price: 20750, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_PISO_3X6", name: "Pino 3x6\" (Piso Estructural)", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "MAD_VINC_PISO_2X3", name: "Madera pino macizo 2x3Mts (Vinculante Piso)", unit: "UNID", price: 4370, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "MAD_ACOMP_SOL", name: "Madera pino macizo 2x3Mts (Acompana Solera)", unit: "UNID", price: 4370, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "MAD_CLAV_TECHO_2X2", name: "Madera pino macizo 2x2Mts (Clavadera Techo)", unit: "UNID", price: 4350, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "FLEJES_TECHO", name: "Flejes 2x1/2 (Techo)", unit: "UNID", price: 2000, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     // --- 3. FIJACIONES Y ANCLAJES ---
+    { id: "FIX_6X1", name: "Tornillo Fix 6x1\"", unit: "UNID", price: 45, category: "3. FIJACIONES Y ANCLAJES" },
     { id: "FIX_6X1_5", name: "Tornillo Fix 6 x 1 1/2\"", unit: "UNID", price: 55, category: "3. FIJACIONES Y ANCLAJES" },
     { id: "FIX_6X2", name: "Tornillo Fix 6x2\"", unit: "UNID", price: 69, category: "3. FIJACIONES Y ANCLAJES" },
     { id: "FIX_8X3", name: "Tornillo Fix 8x3\"", unit: "UNID", price: 183, category: "3. FIJACIONES Y ANCLAJES" },

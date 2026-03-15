@@ -51,29 +51,29 @@ const CRMPage = () => {
 
     return (
         <div className="space-y-8 pb-12">
-            <div className="flex justify-between items-end">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestion de Leads</h2>
-                    <p className="text-slate-500 font-medium">Seguimiento comercial de presupuestos emitidos.</p>
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase">Gestion de Leads</h2>
+                    <p className="text-slate-500 text-sm font-medium">Seguimiento comercial de presupuestos emitidos.</p>
                 </div>
-                <div className="flex gap-4 items-center">
-                    <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center w-full md:w-auto">
+                    <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
                         {['Todos', 'Presupuesto', 'Seguimiento', 'Ganado', 'Perdido'].map(status => (
                             <button
                                 key={status}
                                 onClick={() => setStatusFilter(status)}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shrink-0 ${statusFilter === status ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}
                             >
                                 {status}
                             </button>
                         ))}
                     </div>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <div className="relative w-full sm:w-56">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input
                             type="text"
-                            placeholder="Cliente, Ubicacion o #..."
-                            className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-orange-400 outline-none w-64 shadow-sm"
+                            placeholder="Buscar..."
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 outline-none shadow-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -81,7 +81,7 @@ const CRMPage = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -156,21 +156,21 @@ const CRMPage = () => {
 
             {/* Metrics Row */}
             <div className="grid grid-cols-3 gap-6">
-                <div className="bg-slate-900 p-8 rounded-[40px] text-white space-y-2">
+                <div className="bg-slate-900 p-8 rounded-2xl text-white space-y-2">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conversion</p>
                     <div className="flex items-end gap-3">
                         <span className="text-4xl font-black tracking-tighter">12%</span>
                         <span className="text-sm font-bold text-emerald-400 mb-1">+2.4% este mes</span>
                     </div>
                 </div>
-                <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-2">
+                <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-2">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ventas en Curso</p>
                     <div className="flex items-end gap-3">
                         <span className="text-4xl font-black tracking-tighter text-slate-800">{(crmEntries || []).filter((e: CRMEntry) => e?.status !== 'Perdido' && e?.status !== 'Ganado').length}</span>
                         <span className="text-sm font-bold text-slate-400 mb-1 flex items-center gap-1"><Clock size={12} /> Pendientes</span>
                     </div>
                 </div>
-                <div className="bg-orange-500 p-8 rounded-[40px] text-white shadow-xl shadow-orange-200 space-y-2">
+                <div className="bg-orange-500 p-8 rounded-2xl text-white shadow-xl shadow-orange-200 space-y-2">
                     <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Pipeline Total</p>
                     <div className="flex items-end gap-3">
                         <span className="text-3xl font-black tracking-tighter">{formatCurrency((crmEntries || []).reduce((acc: number, e: CRMEntry) => acc + (Number(e?.total) || 0), 0))}</span>

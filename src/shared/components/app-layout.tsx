@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PenTool, Calculator, Users, FileText, Settings, Download, Mail, Check, Code2, type LucideProps } from 'lucide-react';
+import { PenTool, Calculator, Users, Settings, Download, Mail, Code2, type LucideProps } from 'lucide-react';
 import { PROJECT_LOGO } from '@/shared/lib/constants';
 import clsx from 'clsx';
 
@@ -18,14 +18,14 @@ const NavItem = ({ href, icon: Icon, label, active }: NavItemProps) => (
   <Link
     href={href}
     className={clsx(
-      'flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-xl transition-all duration-200 whitespace-nowrap',
+      'flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap text-sm font-semibold',
       active
-        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+        : 'text-slate-400 hover:text-white hover:bg-white/10'
     )}
   >
-    <Icon size={16} className="md:w-[18px] md:h-[18px]" />
-    <span className="text-xs md:text-sm font-medium tracking-wide">{label}</span>
+    <Icon size={16} />
+    <span className="hidden md:inline">{label}</span>
   </Link>
 );
 
@@ -38,80 +38,68 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-2xl print:hidden">
-        <div className="max-w-[1920px] mx-auto px-4 md:px-6 min-h-[4rem] flex flex-col md:flex-row items-center justify-between py-3 md:py-0 gap-4">
-
-          {/* Logo Area */}
-          <div className="flex items-center gap-4 self-start md:self-auto group">
-            <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg border border-slate-700/50 overflow-hidden p-1">
-                <img src={PROJECT_LOGO} alt="Logo" className="w-full h-full object-contain" />
-              </div>
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-slate-900 shadow-xl print:hidden">
+        <div className="max-w-[1920px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <Link href="/engineering" className="flex items-center gap-3 group shrink-0">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden p-1 shadow-sm group-hover:shadow-md transition-shadow">
+              <img src={PROJECT_LOGO} alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-white font-black text-xs md:text-sm lg:text-base tracking-[0.2em] uppercase leading-none">
+            <div className="hidden sm:flex flex-col">
+              <span className="text-white font-black text-xs tracking-[0.15em] uppercase leading-none">
                 MODULADOR <span className="text-orange-400">SIP</span>
-              </h1>
-              <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-[0.1em] mt-1">
-                LA FÁBRICA DEL PANEL
+              </span>
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                La Fabrica del Panel
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation */}
-          <nav className="w-full md:w-auto flex items-center gap-1 bg-slate-950/50 p-1 rounded-2xl border border-slate-800/50 backdrop-blur-sm overflow-x-auto no-scrollbar scroll-smooth">
-            <NavItem href="/engineering" icon={PenTool} label="Ingeniería" active={currentPath.includes('engineering')} />
+          <nav className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-lg">
+            <NavItem href="/engineering" icon={PenTool} label="Ingenieria" active={currentPath.includes('engineering')} />
             <NavItem href="/budget" icon={Calculator} label="Presupuesto" active={currentPath.includes('budget')} />
             <NavItem href="/crm" icon={Users} label="CRM" active={currentPath.includes('crm')} />
             <NavItem href="/admin" icon={Settings} label="Admin" active={currentPath.includes('admin')} />
             <NavItem href="/export" icon={Download} label="Exportar" active={currentPath.includes('export')} />
           </nav>
 
-          {/* User/Action placeholder */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* User placeholder */}
+          <div className="hidden lg:flex items-center gap-3">
             <div className="text-right">
-              <p className="text-slate-400 text-xs uppercase tracking-wider">Usuario</p>
-              <p className="text-white text-sm font-semibold">Ingeniero Senior</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider">Usuario</p>
+              <p className="text-white text-xs font-semibold">Ingeniero Senior</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-orange-400">
-              <Users size={20} />
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-orange-400">
+              <Users size={16} />
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-2 md:p-6 max-w-[1920px] mx-auto w-full overflow-x-hidden">
+      <main className="flex-1 p-2 md:p-4 lg:p-6 max-w-[1920px] mx-auto w-full overflow-x-hidden">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 py-4 print:hidden">
+      <footer className="bg-slate-900 border-t border-slate-800 py-3 print:hidden">
         <div className="max-w-[1920px] mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-amber-500 rounded flex items-center justify-center">
-                <Check size={16} className="text-white font-bold" strokeWidth={3} />
-              </div>
-              <div>
-                <p className="text-white text-sm font-semibold uppercase tracking-widest leading-none">LA FÁBRICA DEL PANEL</p>
-                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-tight mt-1">Soporte Técnico y Comercial Autorizado</p>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="text-white text-xs font-semibold uppercase tracking-wider">La Fabrica del Panel</p>
             <a
               href="https://resolvia.online"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-slate-500 hover:text-orange-400 transition-colors"
             >
-              <Code2 size={14} />
+              <Code2 size={12} />
               <span className="text-xs">Desarrollado por <span className="font-semibold">ResolvIA</span></span>
             </a>
-            <a href="mailto:consultora.resolvia@gmail.com" className="flex items-center gap-2 text-slate-400 hover:text-orange-400 transition-colors">
-              <Mail size={16} />
-              <span className="text-sm">consultora.resolvia@gmail.com</span>
+            <a href="mailto:consultora.resolvia@gmail.com" className="flex items-center gap-1.5 text-slate-400 hover:text-orange-400 transition-colors">
+              <Mail size={12} />
+              <span className="text-xs">consultora.resolvia@gmail.com</span>
             </a>
           </div>
         </div>

@@ -213,13 +213,8 @@ export const calculateQuantities = (
   foundationType: string = 'platea',
   structureType: string = 'madera'
 ): Quantities => {
-  const {
-    perimExt, areaPiso, areaTecho, cantMurosExt, cantMurosInt,
-    cantPiso, cantTecho, totalPaneles, tabiques, areaMurosBruta,
-    totalAberturasCount, perimAberturas, perimLinealPaneles,
-  } = geo;
+  const { areaPiso, cantMurosExt, cantMurosInt, cantPiso, cantTecho } = geo;
 
-  const { width = 0, length = 0 } = dimensions;
   const quantities: Quantities = {};
 
   const includeExt = selections.includeExterior !== undefined ? selections.includeExterior : true;
@@ -227,11 +222,19 @@ export const calculateQuantities = (
   // Floor is automatically excluded if foundation is 'platea'
   const includeFloor = foundationType === 'platea' ? false : (selections.includeFloor !== undefined ? selections.includeFloor : true);
   const includeRoof = selections.includeRoof !== undefined ? selections.includeRoof : true;
-  const includeAnyWall = includeExt || includeInt;
+
+  // --- DERIVED INPUT VARIABLES ---
+  const paneles_muros = (includeExt ? cantMurosExt : 0) + (includeInt ? cantMurosInt : 0);
+  const paneles_piso = includeFloor ? cantPiso : 0;
+
+  const roofId = (selections?.roofId || 'TECHO-OSB-70').toString().trim();
+  const isSandwich = selections.roofSystem === 'sandwich' || roofId.includes('SAND-');
+
+  const paneles_techo_conv = (includeRoof && !isSandwich) ? cantTecho : 0;
+  const paneles_techo_sandwich = (includeRoof && isSandwich) ? cantTecho : 0;
+  const total_paneles = paneles_muros + paneles_piso + (includeRoof ? cantTecho : 0);
 
   // --- 1. SISTEMA DE PANELES ---
-  // Ensure all values are checked and have valid defaults. We trim IDs to avoid whitespace issues.
-  // Logic updated to ensure we don't accidentally skip them if 'include*' flags were somehow false (though they are hardcoded true).
 
   if (includeExt && geo.cantMurosExt > 0) {
     const id = (selections?.exteriorWallId || 'OSB-70-E').toString().trim();
@@ -252,123 +255,116 @@ export const calculateQuantities = (
 
   // Roof
   if (includeRoof) {
-    const id = (selections?.roofId || 'TECHO-OSB-70').toString().trim();
-    const isSandwich = selections.roofSystem === 'sandwich' || id.includes('SAND-');
-
     if (isSandwich) {
-      quantities[`${id}@@TECHO`] = Math.round(geo.areaTecho);
+      quantities[`${roofId}@@TECHO`] = Math.round(geo.areaTecho);
     } else if (geo.cantTecho > 0) {
-      quantities[`${id}@@TECHO`] = geo.cantTecho;
+      quantities[`${roofId}@@TECHO`] = geo.cantTecho;
     }
   }
 
   // --- 2. MADERAS ESTRUCTURALES ---
 
-  // Pino 3x6" (Techo Estructural): (Largo/0.6) * Ancho * 1.1
-  if (includeRoof) {
-    quantities['MAD_VIGA_TECHO_3X6'] = Math.ceil((length / 0.6) * width * 1.1);
-  } else {
-    quantities['MAD_VIGA_TECHO_3X6'] = 0;
-  }
+  // Vinculantes muros 2x3: paneles_muros * 7
+  quantities['MAD_VINC_2X3'] = Math.round(paneles_muros * 7);
 
-  // Pino 3x6" (Piso Estructural): Keep previous logic but update price label as per constants
+  // Vinculantes piso 2x3: paneles_piso * 5 (only if includeFloor)
+  quantities['MAD_VINC_PISO_2X3'] = includeFloor ? Math.round(paneles_piso * 5) : 0;
+
+  // Solera 1x4: paneles_muros * 1
+  quantities['MAD_SOL_BASE'] = Math.round(paneles_muros * 1);
+
+  // Acompana solera 2x3: paneles_muros * 1
+  quantities['MAD_ACOMP_SOL'] = Math.round(paneles_muros * 1);
+
+  // Vigas techo 3x6: paneles_techo_conv * 3.5 (ONLY techo conv)
+  quantities['MAD_VIGA_TECHO_3X6'] = Math.round(paneles_techo_conv * 3.5);
+
+  // Clavaderas muros 2x2: paneles_muros * 3.5
+  quantities['MAD_CLAV_2X2'] = Math.round(paneles_muros * 3.5);
+
+  // Clavaderas techo 2x2: paneles_techo_conv * 4 (ONLY techo conv)
+  quantities['MAD_CLAV_TECHO_2X2'] = Math.round(paneles_techo_conv * 4);
+
+  // Flejes techo 2x1/2: paneles_techo_conv * 3.25 (ONLY techo conv)
+  quantities['FLEJES_TECHO'] = Math.round(paneles_techo_conv * 3.25);
+
+  // Vigas piso 3x6: keep existing logic
   if (includeFloor && (structureType === 'madera' || structureType === 'metal')) {
     quantities['MAD_VIGA_PISO_3X6'] = Math.ceil(areaPiso * 2.5 * 1.1);
   } else {
     quantities['MAD_VIGA_PISO_3X6'] = 0;
   }
 
-  // Pino 2x3" (Vinculante): (Paneles_Muros + Paneles_Tabiques + Paneles_pisos) * 6.6
-  const cantPanelesMuro = (includeExt ? cantMurosExt : 0) + (includeInt ? cantMurosInt : 0);
-  const cantPanelesPiso = includeFloor ? cantPiso : 0;
-  quantities['MAD_VINC_2X3'] = Math.ceil((cantPanelesMuro + cantPanelesPiso) * 6.6);
+  // --- 3. TORNILLOS ---
 
-  // Pino 1x4" (Solera): (Paneles_Muros + Paneles_Tabiques) * 1.3
-  quantities['MAD_SOL_BASE'] = Math.ceil(cantPanelesMuro * 1.3);
+  // Fix 6x1.5: (paneles_muros + paneles_piso) * 55
+  quantities['FIX_6X1_5'] = Math.round((paneles_muros + paneles_piso) * 55);
 
-  // Pino 2x2" (Clavadera): Perim_Ext * 5.5
-  quantities['MAD_CLAV_2X2'] = Math.ceil(perimExt * 5.5);
+  // Fix 6x2: paneles_muros * 3
+  quantities['FIX_6X2'] = Math.round(paneles_muros * 3);
 
-  // --- 3. FIJACIONES Y ANCLAJES ---
+  // Torx 120mm: paneles_muros * 2.25
+  quantities['TORX_120'] = Math.round(paneles_muros * 2.25);
 
-  // Varilla Roscada 1/2": (Paneles_Muros * 1.3 + Paneles_Tabiques * 1.3) / 5
-  // Anclaje Químico: (Paneles_Muros * 1.3 + Paneles_Tabiques * 1.3) / 10
-  const factorMuros = cantPanelesMuro * 1.3;
+  // Torx 140mm: paneles_muros * 5
+  quantities['TORX_140'] = Math.round(paneles_muros * 5);
+
+  // Hex 14x3: paneles_techo_conv * 28 (ONLY techo conv)
+  quantities['TORN_HEX_3'] = Math.round(paneles_techo_conv * 28);
+
+  // Hex 14x5: paneles_techo_sandwich * 5.5 (ONLY techo sandwich)
+  quantities['HEX_T2_14X5'] = Math.round(paneles_techo_sandwich * 5.5);
+
+  // Fix 6x1: paneles_techo_conv * 11 (ONLY techo conv)
+  quantities['FIX_6X1'] = Math.round(paneles_techo_conv * 11);
+
+  // Fix 8x3: paneles_muros * 8 + paneles_techo_conv * 10
+  quantities['FIX_8X3'] = Math.round(paneles_muros * 8 + paneles_techo_conv * 10);
+
+  // --- 4. FIJACION A PLATEA ---
+
+  // Varilla Roscada 1/2": only if NOT includeFloor (platea)
   if (!includeFloor) {
-    quantities['VARILLA_12'] = Math.ceil(factorMuros / 5);
-    quantities['ANCLAJE_QUIMICO'] = Math.ceil(factorMuros / 10);
+    quantities['VARILLA_12'] = paneles_muros > 0 ? Math.max(1, Math.round(paneles_muros * 0.22)) : 0;
   } else {
     quantities['VARILLA_12'] = 0;
-    quantities['ANCLAJE_QUIMICO'] = 0;
   }
 
-  // Tuerca + Arandela: Cant_Varillas * 5
-  quantities['KIT_TUERCA'] = Math.ceil(quantities['VARILLA_12'] * 5);
+  // Kit Tuerca + Arandela: varillas * 3
+  quantities['KIT_TUERCA'] = quantities['VARILLA_12'] * 3;
 
-  // Tornillos Fix
-  // Fix 6x1.5: (Paneles_totales * 55) + (Perimetro_Aberturas * 6.6)
-  quantities['FIX_6X1_5'] = Math.ceil((totalPaneles * 55) + (perimAberturas * 6.6));
+  // Anclaje Quimico: min 1 if paneles_muros > 0
+  quantities['ANCLAJE_QUIMICO'] = paneles_muros > 0 ? Math.max(1, Math.round(paneles_muros * 0.12)) : 0;
 
-  // Fix 6x2: (Paneles_Muros + Paneles_Tabiques) * 5.3
-  quantities['FIX_6X2'] = Math.ceil(cantPanelesMuro * 5.3);
+  // --- 5. SELLADORES ---
 
-  // Fix 8x3: Paneles_Muros * 13
-  quantities['FIX_8X3'] = Math.ceil(includeExt ? cantMurosExt * 13 : 0);
+  // Espuma PU: min 1 if total > 0
+  quantities['ESPUMA_PU'] = total_paneles > 0 ? Math.max(1, Math.round(total_paneles * 0.22)) : 0;
 
-  // Tornillos Especiales
-  const isTechoSandwich = includeRoof && selections.roofId && selections.roofId.includes('SAND-');
+  // Pegamento PU: min 1 if paneles_muros > 0
+  quantities['PEG_PU'] = paneles_muros > 0 ? Math.max(1, Math.round(paneles_muros * 0.05)) : 0;
 
-  if (includeRoof) {
-    // Hex 14x3": Area_Techo * 4.5
-    quantities['TORN_HEX_3'] = Math.ceil(areaTecho * 4.5);
-    // Torx 140mm: (Area_Techo + Area_Piso) * 3.5
-    quantities['TORX_140'] = Math.ceil((areaTecho + areaPiso) * 3.5);
+  // Membrana Liquida: min 1 if paneles_muros > 0
+  quantities['MEMB_LIQ'] = paneles_muros > 0 ? Math.max(1, Math.round(paneles_muros * 0.035)) : 0;
 
-    if (isTechoSandwich) {
-      // Hex 14x5": Area_Techo * 4.5 (if sandwich)
-      quantities['HEX_T2_14X5'] = Math.ceil(areaTecho * 4.5);
-    } else {
-      quantities['HEX_T2_14X5'] = 0;
-    }
-  } else {
-    quantities['TORN_HEX_3'] = 0;
-    quantities['TORX_140'] = 0;
-    quantities['HEX_T2_14X5'] = 0;
-  }
+  // Membrana Asfaltica: min 1 if paneles_muros > 0
+  quantities['MEMB_AUTO'] = paneles_muros > 0 ? Math.max(1, Math.round(paneles_muros * 0.03)) : 0;
 
-  // Torx 120mm (Muros): Paneles_Muros * 4
-  quantities['TORX_120'] = Math.ceil(cantPanelesMuro * 4);
+  // --- 6. CUBIERTA ---
 
-  // --- 4. AISLACIÓN Y SELLADO QUÍMICO ---
+  // Chapa C27: ceil(paneles_techo_conv * 2.977) ONLY techo conv
+  quantities['CHAPA_C27'] = Math.ceil(paneles_techo_conv * 2.977);
 
-  // Espuma PU: (Total Paneles * 8) / 25
-  quantities['ESPUMA_PU'] = Math.ceil((totalPaneles * 8) / 25);
+  // Barrera Viento: min 1, ceil(paneles_muros / 12)
+  quantities['BARRERA'] = paneles_muros > 0 ? Math.max(1, Math.ceil(paneles_muros / 12)) : 0;
 
-  // Pegamento: (Paneles_Muros * 1.2 + Paneles_Tabiques * 1.2) / 4
-  quantities['PEG_PU'] = Math.ceil((cantPanelesMuro * 1.2) / 4);
-
-  // Membrana Líquida: ((Paneles_Muros * 1.3 + Paneles_Tabiques * 1.3) * 0.15 + 30) / 20
-  quantities['MEMB_LIQ'] = Math.ceil((((includeExt ? cantMurosExt : 0) * 1.3 + (includeInt ? cantMurosInt : 0) * 1.3) * 0.15 + 30) / 20);
-
-  // Barrera Viento: (Area_Muros * 1.1 + Area_Techo * 1.1) / 30
-  quantities['BARRERA'] = Math.ceil((areaMurosBruta * 1.1 + areaTecho * 1.1) / 30);
-
-  // Membrana Asfáltica: (Paneles_Muros * 1.3 + Paneles_Tabiques * 1.3) / 25
-  quantities['MEMB_AUTO'] = Math.ceil(factorMuros / 25);
-
-  // Chapa C27: Area_Techo
-  quantities['CHAPA_C27'] = Math.ceil(areaTecho);
-
-  // --- 5. SERVICIOS Y EXTRAS ---
+  // --- 7. SERVICIOS Y EXTRAS ---
   quantities['INGENIERIA_DETALLE'] = selections.includeEngineeringDetail ? Math.ceil(areaPiso) : 0;
 
-  // Suppress unused variable warnings for variables used only in original JS context
+  // Suppress unused variable warnings
   void openingsCount;
-  void perimLinealPaneles;
-  void tabiques;
-  void totalAberturasCount;
-  void includeAnyWall;
   void prices;
+  void dimensions;
 
   return quantities;
 };
