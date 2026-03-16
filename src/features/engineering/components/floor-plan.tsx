@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
-import { Plus, Minus, RotateCcw, PenTool, Hand, Trash2, Repeat, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2 } from 'lucide-react';
+import { Plus, Minus, RotateCcw, PenTool, Hand, MousePointer2, Trash2, Repeat, Layout, X, ChevronDown, ChevronUp, Ruler, Undo2, Redo2 } from 'lucide-react';
 
 interface RangeControlProps {
     label: string;
@@ -108,7 +108,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const [showPanels, setShowPanels] = useState(true);
     const [minimizedPanels, setMinimizedPanels] = useState<Record<string, boolean>>({});
-    const [mode, setMode] = useState<'draw' | 'measure' | 'pan'>('draw');
+    const [mode, setMode] = useState<'draw' | 'measure' | 'pan' | 'select'>('draw');
     const [isSpaceHeld, setIsSpaceHeld] = useState(false);
     const [tempMeasurement, setTempMeasurement] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null); // { start: {x,y}, end: {x,y} }
     const [tempWall, setTempWall] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null); // { start: {x,y}, end: {x,y} }
@@ -323,6 +323,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
         const isWallClick = (e.target as HTMLElement).getAttribute('data-wall-id');
         const isMeasureClick = (e.target as HTMLElement).getAttribute('data-measure-id');
+        const isSelectMode = mode === 'select';
         const isPanning = isSpaceHeld || e.button === 1 || mode === 'pan';
         const isMeasuring = mode === 'measure';
         const startCoords = getSVGCoords(e.clientX, e.clientY, true);
@@ -393,8 +394,10 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                 localMeasurement = { start: startCoords, end: startCoords };
                 setTempMeasurement(localMeasurement);
                 setIsDragging(true);
+            } else if (isSelectMode) {
+                // Select mode: clicking background just deselects, no drawing
             } else {
-                // Default: click+drag draws a wall
+                // Draw mode: click+drag draws a wall
                 localWallData = { start: startCoords, end: startCoords };
                 setTempWall(localWallData);
                 setIsDragging(true);
@@ -667,9 +670,16 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             {!shouldHideUI && (
                 <div className={`absolute ${isExpanded ? 'top-6' : 'top-3'} left-1/2 -translate-x-1/2 z-50 flex bg-white/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 shadow-xl gap-1.5 items-center`}>
                     <button
+                        onClick={() => { setMode('select'); }}
+                        className={`p-2 rounded-lg transition-all ${mode === 'select' ? 'bg-orange-500 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
+                        title="Seleccionar / Mover elementos (doble-click)"
+                    >
+                        <MousePointer2 size={16} />
+                    </button>
+                    <button
                         onClick={() => { setMode('draw'); setTempMeasurement(null); }}
                         className={`p-2 rounded-lg transition-all ${mode === 'draw' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                        title="Dibujar / Mover tabiques"
+                        title="Dibujar tabiques"
                     >
                         <PenTool size={16} />
                     </button>
@@ -733,8 +743,9 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                 ref={containerRef}
                 className="flex-1 bg-slate-50 relative overflow-hidden"
                 onMouseDown={handleMouseDown}
+                onDoubleClick={() => setMode(mode === 'select' ? 'draw' : 'select')}
             >
-                <svg width="100%" height="100%" viewBox="0 0 800 600" style={{ cursor: 'none' }}>
+                <svg width="100%" height="100%" viewBox="0 0 800 600" style={{ cursor: mode === 'select' ? 'default' : 'none' }}>
                     <defs>
                         <pattern id="grid" width={BASE_SCALE} height={BASE_SCALE} patternUnits="userSpaceOnUse">
                             <path d={`M ${BASE_SCALE} 0 L 0 0 0 ${BASE_SCALE}`} fill="none" stroke={isPrint ? "transparent" : "#e2e8f0"} strokeWidth="1" />
@@ -1065,7 +1076,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                     )}
 
                                     {/* Crosshair when measuring or drawing */}
-                                    {!isSpaceHeld && !tempMeasurement && !tempWall && (
+                                    {mode !== 'select' && !isSpaceHeld && !tempMeasurement && !tempWall && (
                                         <CrosshairOverlay getSVGCoords={getSVGCoords} BASE_SCALE={BASE_SCALE} />
                                     )}
                                     {(customMeasurements || []).map((m: any) => {
