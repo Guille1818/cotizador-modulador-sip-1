@@ -13,7 +13,7 @@ import {
     FileText, Copy, Maximize2, X,
     Square, Plus, Minus, ChevronDown, ChevronUp,
     Box, Ruler, Eye, EyeOff, RotateCcw, Layers,
-    Save, FolderOpen, Trash2, Bath, BedDouble, UtensilsCrossed, Sofa, BookOpen, Car, Tag
+    Save, FolderOpen, Trash2, Bath, BedDouble, UtensilsCrossed, Sofa, BookOpen, Car, Tag, DoorOpen
 } from 'lucide-react';
 import type { RoomType } from '@/shared/types';
 import html2canvas from 'html2canvas';
@@ -136,6 +136,7 @@ const Engineering = () => {
         addWall, removeWall,
         rooms, addRoom, updateRoom, removeRoom,
         savedDesigns, saveDesign, loadDesign, deleteDesign,
+        addOpening,
     } = useStore();
 
     /* ── default selections bootstrap ── */
@@ -252,7 +253,7 @@ const Engineering = () => {
                ROW 2: CONTROLS RIBBON
                ════════════════════════════════════════ */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                     {/* Dimensions */}
                     <NumberStepper label="Largo" value={dimensions.length} onChange={(v) => setDimensions({ length: v })} min={3} max={20} step={1} unit="m" compact />
                     <NumberStepper label="Ancho" value={dimensions.width} onChange={(v) => setDimensions({ width: v })} min={3} max={15} step={1} unit="m" compact />
@@ -322,7 +323,7 @@ const Engineering = () => {
                 </div>
 
                 {/* Second row: shape + roof material + facade toggles */}
-                <div className="flex flex-wrap items-end gap-4 mt-4 pt-3 border-t border-slate-100">
+                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-100">
                     {/* Plant shape */}
                     <div className="flex items-center gap-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">Planta:</span>
@@ -372,7 +373,7 @@ const Engineering = () => {
                                 <button
                                     key={side}
                                     onClick={() => togglePerimeterVisibility(side)}
-                                    className={`h-8 px-2.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${isVisible
+                                    className={`h-6 w-6 rounded text-[9px] font-bold transition-all border flex items-center justify-center ${isVisible
                                         ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
                                         : 'bg-slate-50 border-slate-200 text-slate-400 line-through'
                                         }`}
@@ -382,13 +383,13 @@ const Engineering = () => {
                     </div>
 
                     {/* Stats push right */}
-                    <div className="flex items-center gap-4 ml-auto">
+                    <div className="flex items-center gap-2 ml-auto">
                         <div className="flex items-center gap-2 bg-slate-900 text-white rounded-lg px-3 py-1.5">
-                            <span className="text-lg font-black">{area}</span>
+                            <span className="text-sm sm:text-lg font-black">{area}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase">m2</span>
                         </div>
                         <div className="flex items-center gap-2 bg-orange-500 text-white rounded-lg px-3 py-1.5">
-                            <span className="text-lg font-black">{geo.totalPaneles}</span>
+                            <span className="text-sm sm:text-lg font-black">{geo.totalPaneles}</span>
                             <span className="text-[10px] font-bold text-orange-200 uppercase">paneles</span>
                         </div>
                     </div>
@@ -435,7 +436,7 @@ const Engineering = () => {
                     </div>
 
                     {/* Viewer content */}
-                    <div className={`flex-1 ${isFloorPlanExpanded ? '' : 'h-[500px] lg:h-[600px]'}`}>
+                    <div className={`flex-1 ${isFloorPlanExpanded ? '' : 'h-[350px] sm:h-[450px] lg:h-[600px]'}`}>
                         {activeTab === 'plano' ? (
                             <FloorPlan hideUI={!!maximizedFacade} isExpanded={isFloorPlanExpanded} />
                         ) : (
@@ -667,15 +668,12 @@ const Engineering = () => {
                     {(['Norte', 'Sur', 'Este', 'Oeste'] as const).map(side => {
                         const isVisible = (project as any).perimeterVisibility?.[side] !== false;
                         return (
-                            <div key={side} className={`h-64 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
+                            <div key={side} className={`h-72 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
                                 <FacadeView
                                     type={side}
                                     data={{ ...dimensions, openings, facadeConfigs }}
                                     onMaximize={() => setMaximizedFacade(side)}
                                 />
-                                <div className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded-md px-2 py-0.5 text-[10px] font-bold text-slate-600 uppercase tracking-wider border border-slate-200/50">
-                                    {side}
-                                </div>
                             </div>
                         );
                     })}
@@ -712,8 +710,8 @@ const Engineering = () => {
                             </div>
                         </div>
 
-                        <div className="flex-1 flex min-h-0">
-                            <div className="flex-1 p-6 bg-slate-50/30">
+                        <div className="flex-1 flex flex-col md:flex-row min-h-0">
+                            <div className="flex-1 p-3 md:p-6 bg-slate-50/30 min-h-[200px]">
                                 <FacadeView
                                     type={maximizedFacade}
                                     data={{ ...dimensions, openings, facadeConfigs }}
@@ -722,11 +720,29 @@ const Engineering = () => {
                                 />
                             </div>
 
-                            <div className="w-72 lg:w-80 border-l border-slate-100 p-6 space-y-6 bg-white overflow-y-auto">
+                            <div className="w-full md:w-72 lg:w-80 border-t md:border-t-0 md:border-l border-slate-100 p-4 md:p-6 space-y-4 md:space-y-6 bg-white overflow-y-auto max-h-[40vh] md:max-h-none">
                                 {(() => {
                                     const config = (facadeConfigs as any)[maximizedFacade] || { type: 'recto', hBase: 2.44, hMax: 2.44 };
                                     return (
                                         <>
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Agregar Aberturas</label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={() => addOpening(maximizedFacade! as FacadeSide, 'window')}
+                                                        className="flex items-center justify-center gap-2 py-2.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl text-[10px] font-bold uppercase border border-cyan-200 transition-all"
+                                                    >
+                                                        <Square size={14} /> Ventana
+                                                    </button>
+                                                    <button
+                                                        onClick={() => addOpening(maximizedFacade! as FacadeSide, 'door')}
+                                                        className="flex items-center justify-center gap-2 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[10px] font-bold uppercase border border-amber-200 transition-all"
+                                                    >
+                                                        <DoorOpen size={14} /> Puerta
+                                                    </button>
+                                                </div>
+                                            </div>
+
                                             <div className="space-y-3">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Tipo de Techo</label>
                                                 <div className="space-y-2">
