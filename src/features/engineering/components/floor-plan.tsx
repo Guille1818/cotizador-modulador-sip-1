@@ -335,8 +335,9 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             return;
         }
 
+        // In 'pan' mode: click on openings/walls to select & drag them
         const isOpeningClick = (e.target as HTMLElement).closest('[data-opening-id]');
-        if (isOpeningClick && !isPanning && !isMeasuring) {
+        if (isOpeningClick && mode === 'pan') {
             const oid = (isOpeningClick as HTMLElement).getAttribute('data-opening-id');
             setActiveOpeningId(oid);
             setDraggingOpeningId(oid);
@@ -351,9 +352,6 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
             const onMoveOpening = (me: MouseEvent) => {
                 const cur = getSVGCoords(me.clientX, me.clientY, true);
-                const ref = getSVGCoords(startCoords.x * 0 + e.clientX, startCoords.y * 0 + e.clientY, true); // unused, use delta
-                void ref;
-                // Calculate position along wall from SVG coords
                 let newX: number;
                 if (side === 'Norte') newX = initialX + (cur.x - startCoords.x) / BASE_SCALE;
                 else if (side === 'Sur') newX = initialX - (cur.x - startCoords.x) / BASE_SCALE;
@@ -374,8 +372,8 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             return;
         }
 
-        // Wall click = drag the wall
-        if (isWallClick && !isMeasuring && !isPanning) {
+        // In 'pan' mode: click on walls to select & drag them
+        if (isWallClick && mode === 'pan') {
             setDraggingWallId(isWallClick);
             setActiveInteriorWallId(isWallClick);
             setIsDragging(true);
@@ -411,7 +409,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
         // Initial wall position for dragging
         let initialWallPos: { x: number; y: number } | null = null;
-        if (isWallClick && !isMeasuring && !isPanning) {
+        if (isWallClick && mode === 'pan') {
             const wall = interiorWalls.find((w: any) => w.id === isWallClick);
             if (wall) initialWallPos = { x: (wall as any).x, y: (wall as any).y };
         }
@@ -632,7 +630,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                     key={o.id}
                     transform={`translate(${finalX}, ${finalY}) rotate(${Math.atan2(dy, dx) * 180 / Math.PI})`}
                     onClick={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); }}
-                    className="cursor-move"
+                    className=""
                     data-opening-id={o.id}
                 >
                     <rect
@@ -953,7 +951,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                                                         {/* Delete Button on Recess */}
                                                         <g transform={`translate(${rx + rw / 2}, ${ry + rh / 2})`} onClick={(e) => { e.stopPropagation(); removeRecess(r.id); }}>
-                                                            <circle r="15" fill="#ef4444" className="cursor-pointer hover:fill-red-600 transition-colors" />
+                                                            <circle r="15" fill="#ef4444" className="hover:fill-red-600 transition-colors" />
                                                             <path d="M-5,-5 L5,5 M-5,5 L5,-5" stroke="white" strokeWidth="2" strokeLinecap="round" />
                                                         </g>
                                                     </g>
@@ -982,7 +980,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
 
                                     return (
                                         <g key={wall.id} onClick={(e) => { e.stopPropagation(); setActive(wall.id, 'perimeter'); }}>
-                                            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={isActive ? "#06b6d4" : "#991b1b"} strokeWidth={12} strokeLinecap="butt" className="cursor-pointer" />
+                                            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={isActive ? "#06b6d4" : "#991b1b"} strokeWidth={12} strokeLinecap="butt" className="" />
                                             {renderWoodSpacers(x1, y1, x2, y2)}
                                             {renderDimension(x1, y1 - 15, x2, y2 - 15, length.toFixed(2), isActive ? "#06b6d4" : "#991b1b")}
                                             {renderOpenings({ x: x1, y: y1 }, { x: x2, y: y2 }, wall.id, wall.id)}
@@ -1011,7 +1009,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                                 stroke={isActive ? (isDraggingThis ? "#22d3ee" : "#06b6d4") : "#991b1b"}
                                                 strokeWidth={isActive ? 8 : 4.5}
                                                 strokeLinecap="butt"
-                                                className="cursor-move"
+                                                className=""
                                                 data-wall-id={wall.id}
                                             />
                                             {renderWoodSpacers(startX, startY, endX, endY)}
@@ -1074,7 +1072,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                     {(customMeasurements || []).map((m: any) => {
                                         const isActive = activeMeasurementId === m.id;
                                         return (
-                                            <g key={m.id} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); setActiveMeasurementId(m.id); }}>
+                                            <g key={m.id} className="" onClick={(e) => { e.stopPropagation(); setActiveMeasurementId(m.id); }}>
                                                 <line
                                                     x1={m.start.x} y1={m.start.y}
                                                     x2={m.end.x} y2={m.end.y}
