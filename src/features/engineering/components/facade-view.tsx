@@ -111,10 +111,11 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
         points.push(`0,${h1 * scale}`);
     }
 
-    const svgHeight = Math.max(h1, h2, 2.44) * scale + 60;
+    const margin = 30;
+    const svgHeight = Math.max(h1, h2, 2.44) * scale + margin * 2;
     const polygonPoints = points.map(p => {
         const [x, y] = p.split(',').map(Number);
-        return `${x},${svgHeight - y - 20}`;
+        return `${x + margin},${svgHeight - y - margin}`;
     }).join(' ');
 
     // Manual Panel Grid (1.22 x 2.44) starting from bottom
@@ -126,8 +127,8 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
             panelElements.push(
                 <rect
                     key={`p-${c}-${r}`}
-                    x={c * 1.22 * scale}
-                    y={svgHeight - (r + 1) * 2.44 * scale - 20}
+                    x={c * 1.22 * scale + margin}
+                    y={svgHeight - (r + 1) * 2.44 * scale - margin}
                     width={1.22 * scale}
                     height={2.44 * scale}
                     fill="none"
@@ -207,7 +208,7 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                         </button>
                     </div>
                 )}
-                <svg width="100%" height="100%" viewBox={`-20 -20 ${wallWidth * scale + 40} ${svgHeight + 20}`} preserveAspectRatio="xMidYMid meet" className={!isVisible ? 'opacity-20' : ''}>
+                <svg width="100%" height="100%" viewBox={`0 0 ${wallWidth * scale + margin * 2} ${svgHeight}`} preserveAspectRatio="xMidYMid meet" className={!isVisible ? 'opacity-20' : ''}>
                     <defs>
                         <clipPath id={`clip-${type}`}>
                             <polygon points={polygonPoints} />
@@ -215,7 +216,7 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                     </defs>
 
                     {/* Wall Background */}
-                    <polygon points={polygonPoints} fill="white" stroke="#334155" strokeWidth="2" />
+                    <polygon points={polygonPoints} fill="white" stroke="#334155" strokeWidth="3" />
 
                     {/* Manual Panels with clipPath */}
                     <g clipPath={`url(#clip-${type})`}>
@@ -226,7 +227,7 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                     {facadeOpenings.map((o: any) => (
                         <g
                             key={o.id}
-                            transform={`translate(${o.x * scale}, ${svgHeight - (o.y + o.height) * scale - 20})`}
+                            transform={`translate(${o.x * scale + margin}, ${svgHeight - (o.y + o.height) * scale - margin})`}
                             onMouseDown={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); setInteraction('move'); }}
                             className="cursor-move group/op"
                         >
