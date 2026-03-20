@@ -68,7 +68,7 @@ src/
 │   ├── engineering/components/      # FloorPlan, FacadeView, Viewer3D, EngineeringPage
 │   ├── budget/components/           # BudgetPage
 │   ├── crm/components/              # CRMPage
-│   ├── admin/components/            # AdminPage
+│   ├── admin/components/            # AdminPage, UserManual
 │   └── export/components/           # ExportPage, PDFReportTemplate, ExportDataButton
 │
 └── shared/
@@ -94,9 +94,18 @@ src/
 
 ### 1. Engineering (Modulo Principal)
 - **FloorPlan**: Editor 2D SVG de planta — muros, aberturas, mediciones
+  - Paneles flotantes arrastrables (DraggablePanel) para edicion de tabiques, aberturas, recesos
+  - Long-press en botones +/- con aceleracion progresiva
+  - Steps de 1cm (0.01m) en controles de muros y tabiques
+  - Inputs aceptan decimales con punto o coma (inputMode="decimal")
 - **FacadeView**: Vista SVG de cada fachada con paneles, aberturas, retranqueos
 - **Viewer3D**: Visualizacion Three.js interactiva de la casa completa
+  - Techo generado como secciones rectangulares separadas (L=2 meshes, C=3 meshes)
+  - Aleros de 30cm que siguen la pendiente del techo
+  - Selector de material de fachada (OSB, Chapa Negra, Galvanizada, Cementicia)
 - **EngineeringPage**: Orquesta los 3 viewers + controles laterales
+  - Reporte tecnico con botones Copiar y Descargar (TXT)
+  - Formas L y C posicionadas en lado Este con cero consistente
 
 ### 2. Budget
 - Calcula materiales automaticamente desde la geometria
@@ -110,6 +119,7 @@ src/
 ### 4. Admin
 - Gestion de precios base de productos
 - Categorias de materiales
+- **Manual de Uso** integrado (UserManual component) con guia interactiva y atajos de teclado
 
 ### 5. Export
 - Genera PDF con planta, fachadas, 3D, presupuesto detallado
@@ -231,6 +241,20 @@ Cada error se documenta para que NUNCA ocurra de nuevo.
 
 #### Regla: Fachadas sin clipping
 - Las vistas de fachada deben tener margenes suficientes en el SVG viewBox para que los perimetros sean completamente visibles
+
+#### Regla: Techo 3D por secciones, no por exclusion
+- Para plantas L/C, el techo se genera como **meshes rectangulares separados** (uno por seccion de la planta)
+- NUNCA generar un grid rectangular completo y recortar tiles — deja aristas flotantes visibles
+- Cada seccion tiene overhang solo en bordes exteriores, no en uniones entre secciones
+- La altura del techo usa `getRoofHeight()` que sigue el perfil dominante (no clampea a 2.44m)
+
+#### Regla: Muros de receso — orientacion de pendiente
+- Los muros interiores de recesos (L/C shapes) en lados Este y Oeste tienen h1/h2 invertidos respecto a Norte/Sur
+- Para Este/Oeste: pL usa `(getPointHeight(W-rd, ...), getPointHeight(W, ...))` y pR al reves
+- Verificar siempre que h1 (local -w/2) y h2 (local +w/2) correspondan a las coordenadas world correctas segun la rotacion
+
+#### Regla: Contacto empresa
+- Telefono en PDF: **3518093394** (area ventas)
 
 ---
 
