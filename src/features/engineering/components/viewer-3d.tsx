@@ -636,9 +636,8 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
 
                 if (showRoofPlates) {
                     const resolution = 0.1;
-                    const OVERHANG = 0.3; // 30cm eave overhang
+                    const OVERHANG = 0.3;
 
-                    // Roof grid extends beyond walls for eave overhang
                     const roofX0 = -OVERHANG;
                     const roofZ0 = -OVERHANG;
                     const roofX1 = W + OVERHANG;
@@ -646,17 +645,41 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                     const cols = Math.ceil((roofX1 - roofX0) / resolution);
                     const rows = Math.ceil((roofZ1 - roofZ0) / resolution);
 
-                    // isInsideRoof: like isInside but allows overhang past exterior walls
+                    // Roof height: like getPointHeight but allows overhang to continue the slope
+                    // (no clamping to house bounds, no 2.44 minimum, uses dominant profile)
+                    const nsHasSlope = facadeConfigs?.Norte?.type !== 'recto' || facadeConfigs?.Sur?.type !== 'recto';
+                    const ewHasSlope = facadeConfigs?.Este?.type !== 'recto' || facadeConfigs?.Oeste?.type !== 'recto';
+
+                    const getRoofHeight = (px: number, pz: number): number => {
+                        const hN = getWallHeight(px, W, facadeConfigs?.Norte);
+                        const hS = getWallHeight(W - px, W, facadeConfigs?.Sur);
+                        const hW = getWallHeight(L - pz, L, facadeConfigs?.Oeste);
+                        const hE = getWallHeight(pz, L, facadeConfigs?.Este);
+
+                        const tz = Math.max(0, Math.min(1, pz / (L || 1)));
+                        const tx = Math.max(0, Math.min(1, px / (W || 1)));
+
+                        const profileNS = hN * (1 - tz) + hS * tz;
+                        const profileEW = hW * (1 - tx) + hE * tx;
+
+                        // Use only the sloped profile so eaves continue the slope
+                        if (nsHasSlope && !ewHasSlope) return profileNS;
+                        if (ewHasSlope && !nsHasSlope) return profileEW;
+                        return Math.max(profileNS, profileEW);
+                    };
+
+                    // isInsideRoof: allows overhang past exterior, tight recess exclusion
                     const isInsideRoof = (ax: number, az: number): boolean => {
                         if (ax < roofX0 - 0.01 || ax > roofX1 + 0.01 || az < roofZ0 - 0.01 || az > roofZ1 + 0.01) return false;
                         for (const r of recesses) {
                             if (!r.hideBase) continue;
                             let insideR = false;
                             const rw = r.width, rd = r.depth;
-                            if (r.side === 'Norte') insideR = (ax >= r.x - 0.1 && ax <= r.x + rw + 0.1 && az <= rd + 0.1);
-                            else if (r.side === 'Sur') insideR = (ax >= W - (r.x + rw) - 0.1 && ax <= W - r.x + 0.1 && az >= L - rd - 0.1);
-                            else if (r.side === 'Este') insideR = (ax >= W - rd - 0.1 && az >= r.x - 0.1 && az <= r.x + rw + 0.1);
-                            else if (r.side === 'Oeste') insideR = (ax <= rd + 0.1 && az >= L - (r.x + rw) - 0.1 && az <= L - r.x + 0.1);
+                            // Tight tolerance: exclude recess area but don't eat into house
+                            if (r.side === 'Norte') insideR = (ax >= r.x + 0.05 && ax <= r.x + rw - 0.05 && az <= rd - 0.05);
+                            else if (r.side === 'Sur') insideR = (ax >= W - (r.x + rw) + 0.05 && ax <= W - r.x - 0.05 && az >= L - rd + 0.05);
+                            else if (r.side === 'Este') insideR = (ax >= W - rd + 0.05 && az >= r.x + 0.05 && az <= r.x + rw - 0.05);
+                            else if (r.side === 'Oeste') insideR = (ax <= rd - 0.05 && az >= L - (r.x + rw) + 0.05 && az <= L - r.x - 0.05);
                             if (insideR) return false;
                         }
                         return true;
@@ -669,10 +692,7 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                         for (let i = 0; i <= cols; i++) {
                             const gx = roofX0 + Math.min(roofX1 - roofX0, i * resolution);
                             const gz = roofZ0 + Math.min(roofZ1 - roofZ0, j * resolution);
-                            // Clamp to house bounds for height calculation (overhang follows wall edge height)
-                            const hx = Math.max(0, Math.min(W, gx));
-                            const hz = Math.max(0, Math.min(L, gz));
-                            const h = getPointHeight(hx, hz);
+                            const h = getRoofHeight(gx, gz);
                             vertices.push(gx, h, gz);
                         }
                     }
