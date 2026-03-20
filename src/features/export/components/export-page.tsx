@@ -77,7 +77,7 @@ const ProjectFooter: React.FC<ProjectFooterProps> = ({ price, pageNumber, hidePr
         </div>
         <div>
           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">WhatsApp / Contacto</p>
-          <p className="text-[10px] font-black text-orange-600 uppercase tracking-tighter leading-none">1176561032 (area - ventas)</p>
+          <p className="text-[10px] font-black text-orange-600 uppercase tracking-tighter leading-none">3518093394 (area - ventas)</p>
         </div>
       </div>
       <div className="flex items-center gap-6 text-right">

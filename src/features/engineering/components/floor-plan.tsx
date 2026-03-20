@@ -17,40 +17,103 @@ interface RangeControlProps {
 
 const RangeControl = ({ label, value, onChange, min, max, step, unit }: RangeControlProps) => {
     const [localValue, setLocalValue] = React.useState<string>(Number(value).toFixed(2));
+    const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     React.useEffect(() => { setLocalValue(Number(value).toFixed(2)); }, [value]);
 
     const clamp = (v: number) => Math.max(min, Math.min(max, v));
 
     const commit = (raw: string) => {
-        let v = parseFloat(raw);
+        const normalized = raw.replace(',', '.');
+        let v = parseFloat(normalized);
         if (isNaN(v)) v = value;
         v = clamp(v);
         setLocalValue(v.toFixed(2));
         onChange(v);
     };
 
-    const inc = () => onChange(parseFloat(clamp(value + step).toFixed(4)));
-    const dec = () => onChange(parseFloat(clamp(value - step).toFixed(4)));
+    const inc = React.useCallback(() => onChange(parseFloat(clamp(value + step).toFixed(4))), [value, step, min, max, onChange]);
+    const dec = React.useCallback(() => onChange(parseFloat(clamp(value - step).toFixed(4))), [value, step, min, max, onChange]);
+
+    const stopLongPress = React.useCallback(() => {
+        if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    }, []);
+
+    const startLongPress = React.useCallback((action: () => void) => {
+        action();
+        timeoutRef.current = setTimeout(() => {
+            intervalRef.current = setInterval(action, 80);
+        }, 400);
+    }, []);
+
+    React.useEffect(() => stopLongPress, [stopLongPress]);
 
     return (
         <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight w-14 shrink-0">{label}</span>
             <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white h-7 flex-1">
-                <button onClick={dec} className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-r border-slate-200">
+                <button
+                    onMouseDown={() => startLongPress(dec)}
+                    onMouseUp={stopLongPress}
+                    onMouseLeave={stopLongPress}
+                    onTouchStart={() => startLongPress(dec)}
+                    onTouchEnd={stopLongPress}
+                    className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-r border-slate-200"
+                >
                     <Minus size={10} className="text-slate-500" />
                 </button>
                 <input
-                    type="text" value={localValue}
+                    type="text" inputMode="decimal" value={localValue}
                     onChange={(e) => setLocalValue(e.target.value)}
                     onBlur={() => commit(localValue)}
                     onKeyDown={(e) => e.key === 'Enter' && commit(localValue)}
                     className="flex-1 text-center text-[11px] font-bold text-slate-800 outline-none bg-transparent h-full min-w-0"
                 />
-                <button onClick={inc} className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-l border-slate-200">
+                <button
+                    onMouseDown={() => startLongPress(inc)}
+                    onMouseUp={stopLongPress}
+                    onMouseLeave={stopLongPress}
+                    onTouchStart={() => startLongPress(inc)}
+                    onTouchEnd={stopLongPress}
+                    className="h-full w-6 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-l border-slate-200"
+                >
                     <Plus size={10} className="text-slate-500" />
                 </button>
             </div>
             <span className="text-[9px] font-bold text-slate-400 w-5 shrink-0">{unit}</span>
+        </div>
+    );
+};
+
+/* ── Draggable Panel Wrapper ── */
+const DraggablePanel = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('button, input, select, textarea')) return;
+        e.preventDefault();
+        dragRef.current = { startX: e.clientX, startY: e.clientY, ox: offset.x, oy: offset.y };
+        const handleMove = (me: MouseEvent) => {
+            if (!dragRef.current) return;
+            setOffset({
+                x: dragRef.current.ox + (me.clientX - dragRef.current.startX),
+                y: dragRef.current.oy + (me.clientY - dragRef.current.startY),
+            });
+        };
+        const handleUp = () => {
+            dragRef.current = null;
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('mouseup', handleUp);
+        };
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleUp);
+    };
+
+    return (
+        <div className={className} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }} onMouseDown={handleMouseDown}>
+            {children}
         </div>
     );
 };
@@ -1160,7 +1223,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                     <div className="absolute top-16 right-3 z-[60] flex flex-col gap-3 pointer-events-auto max-h-[calc(100%-80px)] overflow-y-auto custom-scrollbar pr-1">
                         {/* Custom Measurement Edit */}
                         {activeMeasurementId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative">
+                            <DraggablePanel className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative cursor-grab active:cursor-grabbing">
                                 <button onClick={() => setActiveMeasurementId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Medida</h3>
@@ -1197,12 +1260,12 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                         </div>
                                     );
                                 })()}
-                            </div>
+                            </DraggablePanel>
                         )}
 
                         {/* Interior Wall Edit */}
                         {activeInteriorWallId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-cyan-200 shadow-lg w-56 relative">
+                            <DraggablePanel className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-cyan-200 shadow-lg w-56 relative cursor-grab active:cursor-grabbing">
                                 <button onClick={() => setActiveInteriorWallId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-cyan-600 uppercase tracking-widest">Tabique</h3>
@@ -1229,12 +1292,12 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                         </div>
                                     );
                                 })()}
-                            </div>
+                            </DraggablePanel>
                         )}
 
                         {/* Opening Edit */}
                         {activeOpeningId && (
-                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-orange-200 shadow-lg w-56 relative">
+                            <DraggablePanel className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-orange-200 shadow-lg w-56 relative cursor-grab active:cursor-grabbing">
                                 <button onClick={() => setActiveOpeningId(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Abertura</h3>
@@ -1258,12 +1321,12 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                         </div>
                                     );
                                 })()}
-                            </div>
+                            </DraggablePanel>
                         )}
 
                         {/* Perimeter Wall Edit (Extra walls) */}
                         {activeId && !['Norte', 'Sur', 'Este', 'Oeste'].includes(activeId) && (
-                            <div className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative">
+                            <DraggablePanel className="bg-white/95 backdrop-blur-xl p-4 rounded-xl border border-indigo-200 shadow-lg w-56 relative cursor-grab active:cursor-grabbing">
                                 <button onClick={() => setActive(null, null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 transition-colors"><X size={12} /></button>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Muro Exterior</h3>
@@ -1281,7 +1344,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                         </div>
                                     );
                                 })()}
-                            </div>
+                            </DraggablePanel>
                         )}
 
                         {recesses.map((r: any) => {
@@ -1291,8 +1354,8 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                             const isMinimized = minimizedPanels[r.id];
 
                             return (
-                                <div key={r.id} className="bg-white/95 backdrop-blur-xl rounded-xl border border-amber-200 shadow-lg w-56 overflow-hidden">
-                                    <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50/50">
+                                <DraggablePanel key={r.id} className="bg-white/95 backdrop-blur-xl rounded-xl border border-amber-200 shadow-lg w-56 overflow-hidden">
+                                    <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50/50 cursor-grab active:cursor-grabbing">
                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleMinimizePanel(r.id)}>
                                             {isMinimized ? <ChevronDown size={12} className="text-amber-600" /> : <ChevronUp size={12} className="text-amber-600" />}
                                             <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">Forma ({r.side})</h3>
@@ -1312,7 +1375,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                             </div>
                                         </div>
                                     )}
-                                </div>
+                                </DraggablePanel>
                             );
                         })}
                     </div>

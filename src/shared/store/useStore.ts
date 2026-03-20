@@ -610,11 +610,11 @@ export const useStore = create<StoreState>()(
 
       addLShape: () => set((state) => {
         const { width, length } = state.dimensions;
-        const recessWidth = width * 0.4;
-        const recessDepth = length * 0.4;
+        const recessWidth = length * 0.4;
+        const recessDepth = width * 0.4;
         const newRecess: Recess = {
           id: generateUUID(),
-          side: 'Sur',
+          side: 'Este',
           x: 0,
           width: recessWidth,
           depth: recessDepth,
@@ -627,12 +627,12 @@ export const useStore = create<StoreState>()(
 
       addCShape: () => set((state) => {
         const { width, length } = state.dimensions;
-        const recessWidth = width * 0.5;
-        const recessDepth = length * 0.3;
+        const recessWidth = length * 0.5;
+        const recessDepth = width * 0.3;
         const newRecess: Recess = {
           id: generateUUID(),
-          side: 'Norte',
-          x: (width - recessWidth) / 2,
+          side: 'Este',
+          x: (length - recessWidth) / 2,
           width: recessWidth,
           depth: recessDepth,
           height: state.dimensions.height,

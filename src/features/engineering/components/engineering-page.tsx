@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
 import type { HousePreset } from '@/shared/lib/presets';
@@ -10,12 +10,11 @@ import FacadeView from './facade-view';
 import Viewer3D from './viewer-3d';
 import Link from 'next/link';
 import {
-    FileText, Copy, Maximize2, X,
+    FileText, Copy, Download, Maximize2, X,
     Square, Plus, Minus, ChevronDown, ChevronUp,
     Box, Ruler, Eye, EyeOff, RotateCcw, Layers,
-    Save, FolderOpen, Trash2, Bath, BedDouble, UtensilsCrossed, Sofa, BookOpen, Car, Tag, DoorOpen
+    Save, FolderOpen, Trash2, DoorOpen
 } from 'lucide-react';
-import type { RoomType } from '@/shared/types';
 import html2canvas from 'html2canvas';
 
 /* ──────────────────────────────────────────────
@@ -34,6 +33,8 @@ interface NumberStepperProps {
 
 const NumberStepper = ({ label, value, onChange, min, max, step, unit, compact }: NumberStepperProps) => {
     const [localValue, setLocalValue] = useState<string>(String(value));
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setLocalValue(String(step < 1 ? value.toFixed(2) : value));
@@ -42,39 +43,63 @@ const NumberStepper = ({ label, value, onChange, min, max, step, unit, compact }
     const clamp = (v: number) => Math.max(min, Math.min(max, v));
 
     const commitValue = (raw: string) => {
-        let v = parseFloat(raw);
+        const normalized = raw.replace(',', '.');
+        let v = parseFloat(normalized);
         if (isNaN(v)) v = min;
         v = clamp(v);
         setLocalValue(String(step < 1 ? v.toFixed(2) : v));
         onChange(v);
     };
 
-    const increment = () => onChange(parseFloat(clamp(parseFloat(String(value)) + step).toFixed(4)));
-    const decrement = () => onChange(parseFloat(clamp(parseFloat(String(value)) - step).toFixed(4)));
+    const increment = useCallback(() => onChange(parseFloat(clamp(parseFloat(String(value)) + step).toFixed(4))), [value, step, min, max, onChange]);
+    const decrement = useCallback(() => onChange(parseFloat(clamp(parseFloat(String(value)) - step).toFixed(4))), [value, step, min, max, onChange]);
+
+    const stopLongPress = useCallback(() => {
+        if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    }, []);
+
+    const startLongPress = useCallback((action: () => void) => {
+        action();
+        timeoutRef.current = setTimeout(() => {
+            intervalRef.current = setInterval(action, 80);
+        }, 400);
+    }, []);
+
+    useEffect(() => stopLongPress, [stopLongPress]);
 
     return (
         <div className={compact ? "flex flex-col gap-1" : "flex flex-col gap-1.5"}>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</label>
             <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white h-9">
                 <button
-                    onClick={decrement}
+                    onMouseDown={() => startLongPress(decrement)}
+                    onMouseUp={stopLongPress}
+                    onMouseLeave={stopLongPress}
+                    onTouchStart={() => startLongPress(decrement)}
+                    onTouchEnd={stopLongPress}
                     className="h-full w-8 flex items-center justify-center bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition-colors border-r border-slate-200"
                 >
                     <Minus size={12} className="text-slate-500" />
                 </button>
                 <div className="flex items-center gap-0.5 px-1 flex-1 justify-center">
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={localValue}
                         onChange={(e) => setLocalValue(e.target.value)}
                         onBlur={() => commitValue(localValue)}
                         onKeyDown={(e) => e.key === 'Enter' && commitValue(localValue)}
-                        className="h-full w-12 text-center text-sm font-bold text-slate-800 outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="h-full w-12 text-center text-sm font-bold text-slate-800 outline-none bg-transparent"
                     />
                     <span className="text-[10px] font-bold text-slate-400">{unit}</span>
                 </div>
                 <button
-                    onClick={increment}
+                    onMouseDown={() => startLongPress(increment)}
+                    onMouseUp={stopLongPress}
+                    onMouseLeave={stopLongPress}
+                    onTouchStart={() => startLongPress(increment)}
+                    onTouchEnd={stopLongPress}
                     className="h-full w-8 flex items-center justify-center bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition-colors border-l border-slate-200"
                 >
                     <Plus size={12} className="text-slate-500" />
@@ -134,7 +159,6 @@ const Engineering = () => {
         updateRecess, removeRecess, clearRecesses, addLShape, addCShape,
         togglePerimeterVisibility,
         addWall, removeWall,
-        rooms, addRoom, updateRoom, removeRoom,
         savedDesigns, saveDesign, loadDesign, deleteDesign,
         addOpening,
     } = useStore();
@@ -164,13 +188,10 @@ const Engineering = () => {
     const [maximizedFacade, setMaximizedFacade] = useState<FacadeSide | null>(null);
     const [isFloorPlanExpanded, setIsFloorPlanExpanded] = useState(false);
     const [_activePresetId, setActivePresetId] = useState<string | null>(null);
-    const [ambientes, setAmbientes] = useState<number>(interiorWalls.length + 1);
     const [activeTab, setActiveTab] = useState<'plano' | '3d'>('plano');
     const [showReport, setShowReport] = useState(false);
     const [showDesigns, setShowDesigns] = useState(false);
     const [saveName, setSaveName] = useState('');
-
-    useEffect(() => { setAmbientes(interiorWalls.length + 1); }, [interiorWalls.length]);
 
     /* ── geometry calculation ── */
     const geo = useMemo(() => {
@@ -203,42 +224,76 @@ const Engineering = () => {
                 });
             });
         }
-        setAmbientes((preset.interiorWalls?.length || 0) + 1);
     }, [setDimensions, setFoundationType, setStructureType, setRoofSystem, setSelectionId, interiorWalls, removeWall, addWall]);
 
-    /* ── ambientes handler ── */
-    const handleAmbientesChange = useCallback((newCount: number) => {
-        if (newCount < 1) return;
-        const wallsNeeded = newCount - 1;
-        const currentWalls = interiorWalls.length;
-        setAmbientes(newCount);
-        if (wallsNeeded > currentWalls) {
-            for (let i = 0; i < wallsNeeded - currentWalls; i++) {
-                const xPos = ((currentWalls + i + 1) / (wallsNeeded + 1)) * dimensions.length;
-                addWall('interior', { x: xPos, y: 0, x1: xPos, y1: 0, x2: xPos, y2: dimensions.width, length: dimensions.width });
-            }
-        } else if (wallsNeeded < currentWalls) {
-            interiorWalls.slice(wallsNeeded).forEach(w => removeWall(w.id));
-        }
-    }, [interiorWalls, dimensions, addWall, removeWall]);
+    /* ── build report text ── */
+    const buildReportText = () => {
+        let text = `==========================================\n`;
+        text += `   REPORTE TECNICO - MODULADOR SIP\n`;
+        text += `   LA FABRICA DEL PANEL\n`;
+        text += `==========================================\n\n`;
+        text += `PROYECTO\n`;
+        text += `  Cliente: ${project.clientName || 'No especificado'}\n`;
+        text += `  Ubicacion: ${project.location || 'No especificada'}\n`;
+        text += `  Fecha: ${project.date || new Date().toLocaleDateString('es-AR')}\n`;
+        text += `  Presupuesto: ${project.budgetNumber || '---'}\n\n`;
+        text += `DIMENSIONES BASE\n`;
+        text += `  Largo: ${dimensions.length}m | Ancho: ${dimensions.width}m | Alt. Muros: ${dimensions.height}m | Cumbrera: ${dimensions.ridgeHeight}m\n`;
+        text += `  Superficie: ${area} m2 | Perimetro: ${geo.perimExt.toFixed(2)} ml\n\n`;
+        text += `1. MUROS EXTERIORES (FACHADAS)\n`;
+        Object.entries(geo.sides || {}).filter(([_, stats]: [string, unknown]) => (stats as Record<string, unknown>).isVisible).forEach(([side, stats]: [string, unknown]) => {
+            const s = stats as Record<string, unknown>;
+            text += `   Fachada ${side}:\n`;
+            text += `     Area: ${(s.area as number).toFixed(2)} m2 | Paneles: ${s.panels} | Perim: ${((s.perimPanels as number) ?? 0).toFixed(2)} ml | Aberturas: ${(s.openingML as number).toFixed(2)} ml\n`;
+        });
+        text += `   TOTAL Muros Ext: ${geo.areaMurosBruta.toFixed(2)} m2 | ${geo.cantMurosExt} paneles | ${geo.perimMurosExt?.toFixed(2)} ml perim.\n\n`;
+        text += `2. TABIQUES INTERIORES\n`;
+        text += `   Lineales: ${geo.tabiques.toFixed(2)} ml | Paneles: ${geo.cantMurosInt} | Perim: ${geo.perimMurosInt?.toFixed(2)} ml\n\n`;
+        text += `3. PISO\n`;
+        text += `   Area: ${geo.areaPiso.toFixed(2)} m2 | Paneles: ${geo.cantPiso} | Perim: ${geo.perimPiso?.toFixed(2)} ml\n\n`;
+        text += `4. TECHO\n`;
+        text += `   Area: ${geo.areaTecho.toFixed(2)} m2 | Paneles: ${geo.cantTecho} | Perim: ${geo.perimTecho?.toFixed(2)} ml\n\n`;
+        text += `==========================================\n`;
+        text += `RESUMEN GENERAL\n`;
+        text += `  Perimetro Exterior: ${geo.perimExt.toFixed(2)} ml\n`;
+        text += `  Total Aberturas: ${geo.totalAberturasCount} u | Perim: ${geo.perimAberturas.toFixed(2)} ml\n`;
+        text += `  TOTAL PANELES: ${geo.totalPaneles} u\n`;
+        text += `  Perimetro Lineal Total: ${geo.perimLinealPaneles.toFixed(2)} ml\n`;
+        text += `==========================================\n`;
+        text += `  WhatsApp: 3518093394 (area ventas)\n`;
+        return text;
+    };
 
     /* ── copy to clipboard ── */
-    const copyToClipboard = () => {
-        let text = `======================================\n`;
-        text += `   REPORTE TECNICO - SIP MODULADOR\n`;
-        text += `======================================\n\n`;
-        text += `1. MUROS EXTERIORES (FACHADAS)\n`;
-        text += `   Dimensiones Base: ${dimensions.width}m x ${dimensions.length}m x ${dimensions.height}m (H)\n`;
-        Object.entries(geo.sides || {}).filter(([_, stats]: [string, any]) => stats.isVisible).forEach(([side, stats]: [string, any]) => {
-            text += `    Fachada ${side}: Area: ${stats.area.toFixed(2)} m2 | Paneles: ${stats.panels} | Perim: ${stats.perimPanels?.toFixed(2)} ml | Aberturas: ${stats.openingML.toFixed(2)} ml\n`;
-        });
-        text += `   Total Area Muros Ext: ${geo.areaMurosBruta.toFixed(2)} m2 | Paneles: ${geo.cantMurosExt}\n\n`;
-        text += `2. TABIQUES: ${geo.tabiques.toFixed(2)} ml | ${geo.cantMurosInt} paneles\n\n`;
-        text += `3. PISO: ${geo.areaPiso.toFixed(2)} m2 (${geo.cantPiso} paneles) | TECHO: ${geo.areaTecho.toFixed(2)} m2 (${geo.cantTecho} paneles)\n\n`;
-        text += `4. RESUMEN: ${geo.totalPaneles} paneles totales | ${geo.perimLinealPaneles.toFixed(2)} ml perim. lineal\n`;
-        text += `======================================`;
-        navigator.clipboard.writeText(text);
-        alert("Reporte copiado al portapapeles!");
+    const copyToClipboard = async () => {
+        const text = buildReportText();
+        try {
+            await navigator.clipboard.writeText(text);
+            alert("Reporte copiado al portapapeles!");
+        } catch {
+            // Fallback for browsers that block clipboard API
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert("Reporte copiado al portapapeles!");
+        }
+    };
+
+    /* ── download report as TXT ── */
+    const downloadReport = () => {
+        const text = buildReportText();
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Reporte_SIP_${project.clientName || 'Proyecto'}_${dimensions.width}x${dimensions.length}m.txt`.replace(/[^a-z0-9._-]/gi, '_');
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     void _activePresetId; // preset selection kept for programmatic use
@@ -255,26 +310,10 @@ const Engineering = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                     {/* Dimensions */}
-                    <NumberStepper label="Largo" value={dimensions.length} onChange={(v) => setDimensions({ length: v })} min={3} max={20} step={1} unit="m" compact />
-                    <NumberStepper label="Ancho" value={dimensions.width} onChange={(v) => setDimensions({ width: v })} min={3} max={15} step={1} unit="m" compact />
+                    <NumberStepper label="Largo" value={dimensions.length} onChange={(v) => setDimensions({ length: v })} min={3} max={20} step={0.5} unit="m" compact />
+                    <NumberStepper label="Ancho" value={dimensions.width} onChange={(v) => setDimensions({ width: v })} min={3} max={15} step={0.5} unit="m" compact />
                     <NumberStepper label="Alt. Muros" value={dimensions.height} onChange={(v) => setDimensions({ height: v })} min={2.44} max={5.0} step={0.10} unit="m" compact />
                     <NumberStepper label="Cumbrera" value={dimensions.ridgeHeight} onChange={(v) => setDimensions({ ridgeHeight: v })} min={2.44} max={7.0} step={0.10} unit="m" compact />
-
-                    {/* Ambientes */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ambientes</label>
-                        <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white h-9">
-                            <button onClick={() => handleAmbientesChange(ambientes - 1)} className="h-full w-8 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-r border-slate-200">
-                                <Minus size={12} className="text-slate-500" />
-                            </button>
-                            <div className="flex-1 flex items-center justify-center">
-                                <span className="text-sm font-black text-slate-800">{ambientes}</span>
-                            </div>
-                            <button onClick={() => handleAmbientesChange(ambientes + 1)} className="h-full w-8 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors border-l border-slate-200">
-                                <Plus size={12} className="text-slate-500" />
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Foundation */}
                     <div className="flex flex-col gap-1.5">
@@ -334,12 +373,12 @@ const Engineering = () => {
                         ><Square size={14} /></button>
                         <button
                             onClick={() => addLShape()}
-                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && (project as any).recesses[0].side === 'Sur' ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
+                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && (project as any).recesses[0].hideSideWall ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
                             title="Forma L"
                         ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16h16" /></svg></button>
                         <button
                             onClick={() => addCShape()}
-                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && (project as any).recesses[0].side === 'Norte' ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
+                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && !(project as any).recesses[0].hideSideWall ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
                             title="Forma C"
                         ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 4H4v16h16" /></svg></button>
                     </div>
@@ -471,49 +510,6 @@ const Engineering = () => {
                         </div>
                     </div>
 
-                    {/* Rooms / Ambientes */}
-                    <div className="bg-white rounded-xl border border-slate-200 p-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ambientes</span>
-                            <button
-                                onClick={() => addRoom(`Ambiente ${rooms.length + 1}`, 'otro')}
-                                className="text-[9px] font-bold text-orange-500 hover:text-orange-600 uppercase flex items-center gap-1"
-                            ><Plus size={10} /> Agregar</button>
-                        </div>
-                        {rooms.length === 0 ? (
-                            <p className="text-[9px] text-slate-300 italic text-center py-2">Sin ambientes definidos</p>
-                        ) : (
-                            <div className="space-y-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
-                                {rooms.map(room => (
-                                    <div key={room.id} className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2 py-1.5">
-                                        <select
-                                            value={room.type}
-                                            onChange={(e) => updateRoom(room.id, { type: e.target.value as RoomType })}
-                                            className="bg-transparent text-[9px] font-bold text-slate-500 outline-none w-20 cursor-pointer"
-                                        >
-                                            <option value="dormitorio">Dormitorio</option>
-                                            <option value="bano">Bano</option>
-                                            <option value="cocina">Cocina</option>
-                                            <option value="living">Living</option>
-                                            <option value="comedor">Comedor</option>
-                                            <option value="lavadero">Lavadero</option>
-                                            <option value="estudio">Estudio</option>
-                                            <option value="garage">Garage</option>
-                                            <option value="otro">Otro</option>
-                                        </select>
-                                        <input
-                                            type="text"
-                                            value={room.name}
-                                            onChange={(e) => updateRoom(room.id, { name: e.target.value })}
-                                            className="flex-1 text-[10px] font-bold text-slate-700 bg-transparent outline-none min-w-0"
-                                        />
-                                        <button onClick={() => removeRoom(room.id)} className="text-slate-300 hover:text-rose-500 transition-colors shrink-0"><Trash2 size={10} /></button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
                     {/* Save & Gallery */}
                     <div className="flex gap-2">
                         <button
@@ -640,12 +636,20 @@ const Engineering = () => {
                                     <DataRow label="Perim. Lineal" value={geo.perimLinealPaneles.toFixed(2)} sub="ml" inverted />
                                 </div>
 
-                                <button
-                                    onClick={copyToClipboard}
-                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
-                                >
-                                    <Copy size={14} /> Copiar Reporte
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+                                    >
+                                        <Copy size={14} /> Copiar
+                                    </button>
+                                    <button
+                                        onClick={downloadReport}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+                                    >
+                                        <Download size={14} /> Descargar
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
