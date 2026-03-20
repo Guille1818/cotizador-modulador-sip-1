@@ -647,15 +647,20 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                         for (let i = 0; i <= cols; i++) {
                             const gx = Math.min(W, i * resolution);
                             const gz = Math.min(L, j * resolution);
-                            vertices.push(gx, getPointHeight(gx, gz), gz);
+                            // Clamp height for vertices in recess areas to prevent roof overhang
+                            const h = isInside(gx, gz) ? getPointHeight(gx, gz) : minBaseH;
+                            vertices.push(gx, h, gz);
                         }
                     }
 
                     for (let j = 0; j < rows; j++) {
                         for (let i = 0; i < cols; i++) {
-                            const gx = i * resolution + resolution / 2;
-                            const gz = j * resolution + resolution / 2;
-                            if (isInside(gx, gz)) {
+                            // Check all 4 corners of the tile to prevent tiles from extending into recesses
+                            const x0 = Math.min(W, i * resolution);
+                            const x1 = Math.min(W, (i + 1) * resolution);
+                            const z0 = Math.min(L, j * resolution);
+                            const z1 = Math.min(L, (j + 1) * resolution);
+                            if (isInside(x0, z0) && isInside(x1, z0) && isInside(x0, z1) && isInside(x1, z1)) {
                                 const a = j * (cols + 1) + i;
                                 const b = j * (cols + 1) + (i + 1);
                                 const c = (j + 1) * (cols + 1) + i;
