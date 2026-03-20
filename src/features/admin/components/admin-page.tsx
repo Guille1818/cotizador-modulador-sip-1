@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { useStore } from '@/shared/store/useStore';
-import { Plus, Trash2, Save, ShoppingBag, FileText, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Save, ShoppingBag, FileText, CheckCircle2, BookOpen } from 'lucide-react';
 import type { Product } from '@/shared/types';
+import UserManual from './user-manual';
 
 interface NewItem {
     name: string;
@@ -17,6 +18,7 @@ const AdminPage = () => {
 
     const [newItem, setNewItem] = useState<NewItem>({ name: '', category: '', price: 0, unit: 'Unid' });
     const [showToast, setShowToast] = useState(false);
+    const [showManual, setShowManual] = useState(false);
 
     const handleAddItem = () => {
         if (!newItem.name || !newItem.category) return;
@@ -61,6 +63,10 @@ const AdminPage = () => {
         'BARRERA': 'max(1, ceil(Paneles Muros / 12))'
     };
 
+    if (showManual) {
+        return <UserManual onBack={() => setShowManual(false)} />;
+    }
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
             {/* TOAST NOTIFICATION */}
@@ -76,6 +82,12 @@ const AdminPage = () => {
                     <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Panel de Administracion</h2>
                     <p className="text-slate-400 font-medium">Gestiona la base de datos de precios y configuraciones globales.</p>
                 </div>
+                <button
+                    onClick={() => setShowManual(true)}
+                    className="flex items-center gap-2 px-5 py-3 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-lg"
+                >
+                    <BookOpen size={16} /> Manual de Uso
+                </button>
             </div>
 
             {/* DEFAULTS SECTION */}
