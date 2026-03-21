@@ -91,7 +91,7 @@ export async function analizarPlano(pdfFile: File): Promise<GeminiExtractionResu
         { inline_data: { mime_type: 'application/pdf', data: base64 } },
         { text: PROMPT_EXTRACCION }
       ]}],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      generationConfig: { temperature: 0.1, maxOutputTokens: 65536, thinkingConfig: { thinkingBudget: 0 } }
     })
   });
 
