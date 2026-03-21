@@ -1,4 +1,4 @@
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 export interface GeminiExtractionResult {
   proyecto: { nombre: string; superficie_total: number; proyectista: string; fecha: string };
@@ -97,17 +97,39 @@ export async function analizarPlano(pdfFile: File): Promise<GeminiExtractionResu
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    console.error('[Gemini] API error:', response.status, err);
     const code = err?.error?.status || (response.status === 429 ? 'RATE_LIMIT_EXCEEDED' : 'INTERNAL');
     throw new Error(code);
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const clean = text.replace(/```json\n?|```\n?/g, '').trim();
+  console.log('[Gemini] Raw response:', JSON.stringify(data).substring(0, 500));
+
+  // Check for blocked or empty responses
+  if (!data.candidates || data.candidates.length === 0) {
+    console.error('[Gemini] No candidates in response:', data);
+    throw new Error(data.promptFeedback?.blockReason || 'INTERNAL');
+  }
+
+  const candidate = data.candidates[0];
+  if (candidate.finishReason === 'SAFETY') {
+    console.error('[Gemini] Blocked by safety filters');
+    throw new Error('INVALID_ARGUMENT');
+  }
+
+  const text = candidate.content?.parts?.[0]?.text || '';
+  if (!text) {
+    console.error('[Gemini] Empty text in response');
+    throw new Error('parse_error');
+  }
+
+  // Clean potential markdown wrappers and parse JSON
+  const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
   try {
     return JSON.parse(clean);
-  } catch {
+  } catch (e) {
+    console.error('[Gemini] JSON parse failed. Raw text:', text.substring(0, 1000));
     throw new Error('parse_error');
   }
 }
