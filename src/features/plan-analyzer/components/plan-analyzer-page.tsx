@@ -10,6 +10,9 @@ import {
   analizarConRetry, calcularDesdeExtraccion, ERROR_MESSAGES,
   type GeminiExtractionResult
 } from '@/shared/lib/gemini-service';
+import { useStore } from '@/shared/store/useStore';
+import { useRouter } from 'next/navigation';
+import type { FacadeSide } from '@/shared/types';
 
 /* ─── Accordion ─── */
 const Accordion = ({ title, icon, children, defaultOpen = false }: {
@@ -67,6 +70,8 @@ const PlanAnalyzerPage = () => {
   const [data, setData] = useState<GeminiExtractionResult | null>(null);
   const [results, setResults] = useState<ReturnType<typeof calcularDesdeExtraccion> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const store = useStore();
 
   /* ── File handling ── */
   const handleFile = useCallback((f: File) => {
@@ -108,6 +113,59 @@ const PlanAnalyzerPage = () => {
 
   /* ── Reset ── */
   const reset = () => { setStep('upload'); setFile(null); setData(null); setResults(null); setError(null); };
+
+  /* ── Load into store and go to budget ── */
+  const loadToStoreAndGoBudget = () => {
+    if (!data) return;
+    const d = data.dimensiones_generales;
+    const baseH = d.altura_minima > 0 ? d.altura_minima : 2.44;
+    const ridgeH = d.altura_maxima > baseH ? d.altura_maxima : baseH;
+
+    // Set dimensions
+    store.setDimensions({ width: d.ancho, length: d.largo, height: baseH, ridgeHeight: ridgeH });
+
+    // Set project info
+    store.setProjectData({ clientName: data.proyecto.nombre, location: data.proyecto.proyectista, date: data.proyecto.fecha });
+
+    // Clear existing walls and openings
+    store.interiorWalls.forEach(w => store.removeWall(w.id));
+    store.openings.forEach(o => store.removeOpening(o.id));
+
+    // Add interior walls
+    data.muros_interiores.forEach((m, i) => {
+      store.addWall('interior', {
+        x: (i + 1) * (d.ancho / (data.muros_interiores.length + 1)),
+        y: 0,
+        length: m.largo,
+        isVertical: m.largo <= d.ancho,
+      });
+    });
+
+    // Add openings distributed across facades
+    const sides: FacadeSide[] = ['Norte', 'Sur', 'Este', 'Oeste'];
+    data.aberturas.forEach((ab) => {
+      // Try to match muro_asociado to a facade side
+      let side: FacadeSide = 'Norte';
+      const muro = ab.muro_asociado.toLowerCase();
+      if (muro.includes('norte') || muro.includes('front')) side = 'Norte';
+      else if (muro.includes('sur') || muro.includes('poster') || muro.includes('back')) side = 'Sur';
+      else if (muro.includes('este') || muro.includes('east') || muro.includes('derech')) side = 'Este';
+      else if (muro.includes('oeste') || muro.includes('west') || muro.includes('izquier')) side = 'Oeste';
+      else side = sides[Math.floor(Math.random() * 4)];
+
+      for (let q = 0; q < ab.cantidad; q++) {
+        store.addOpening(side, ab.tipo === 'door' ? 'door' : 'window');
+        // Update the last added opening with correct dimensions
+        const lastOpening = useStore.getState().openings[useStore.getState().openings.length - 1];
+        if (lastOpening) {
+          store.updateOpening(lastOpening.id, { width: ab.ancho, height: ab.alto, x: 0.5 + q * (ab.ancho + 0.3) });
+        }
+      }
+    });
+
+    // Navigate to budget
+    router.push('/budget');
+  };
 
   /* ── Update helpers ── */
   const updateData = (patch: Partial<GeminiExtractionResult>) => setData(prev => prev ? { ...prev, ...patch } : prev);
@@ -349,10 +407,15 @@ const PlanAnalyzerPage = () => {
             </div>
           </Accordion>
 
-          {/* Calculate Button */}
-          <button onClick={calculate} className="w-full flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
-            <CheckCircle2 size={18} /> Calcular Presupuesto
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button onClick={calculate} className="flex-1 flex items-center justify-center gap-3 py-4 bg-cyan-500 hover:bg-cyan-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors">
+              <CheckCircle2 size={18} /> Ver Resumen
+            </button>
+            <button onClick={loadToStoreAndGoBudget} className="flex-1 flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
+              <FileText size={18} /> Ir a Presupuesto
+            </button>
+          </div>
         </div>
       )}
 
@@ -437,12 +500,15 @@ const PlanAnalyzerPage = () => {
           )}
 
           {/* Actions */}
+          <button onClick={loadToStoreAndGoBudget} className="w-full flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
+            <FileText size={18} /> Ir a Presupuesto Completo
+          </button>
           <div className="flex gap-3">
             <button onClick={() => setStep('review')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors">
               <RotateCcw size={14} /> Editar Datos
             </button>
-            <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors">
-              <Download size={14} /> Exportar PDF
+            <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors">
+              <Download size={14} /> Imprimir
             </button>
           </div>
         </div>
