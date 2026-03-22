@@ -7,12 +7,14 @@ import {
   Lightbulb, Shield, X, Home, Ruler, DoorOpen, Layers, Wrench
 } from 'lucide-react';
 import {
-  analizarConRetry, calcularDesdeExtraccion, ERROR_MESSAGES,
+  analizarConRetry, ERROR_MESSAGES,
   type GeminiExtractionResult
 } from '@/shared/lib/gemini-service';
 import { useStore } from '@/shared/store/useStore';
 import { useRouter } from 'next/navigation';
-import type { FacadeSide } from '@/shared/types';
+import { fullCalculation } from '@/shared/lib/calculations';
+import { calculateBudget } from '@/shared/lib/budget';
+import type { FacadeSide, GeometryResult, Project } from '@/shared/types';
 
 /* ─── Accordion ─── */
 const Accordion = ({ title, icon, children, defaultOpen = false }: {
@@ -72,7 +74,7 @@ const PlanAnalyzerPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [data, setData] = useState<GeminiExtractionResult | null>(storedExtraction);
-  const [results, setResults] = useState<ReturnType<typeof calcularDesdeExtraccion> | null>(null);
+  const [results, setResults] = useState<{ geo: GeometryResult; quantities: Record<string, number>; items: Array<{ id: string; name: string; category: string; unit: string; qty: number; price: number; total: number }>; total: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -112,10 +114,19 @@ const PlanAnalyzerPage = () => {
     }
   };
 
-  /* ── Calculate ── */
+  /* ── Calculate using the SAME engine as Budget ── */
   const calculate = () => {
     if (!data) return;
-    setResults(calcularDesdeExtraccion(data));
+    loadToStore();
+    // Read fresh state after loadToStore
+    const st = useStore.getState();
+    const { geo, quantities } = fullCalculation(
+      st.dimensions, st.selections, st.interiorWalls, st.openings,
+      st.facadeConfigs, { ...st.project, perimeterWalls: st.perimeterWalls, interiorWalls: st.interiorWalls } as Partial<Project>,
+      st.foundationType, st.structureType, st.prices
+    );
+    const { items, total } = calculateBudget(quantities, st.prices, st.project);
+    setResults({ geo, quantities, items, total });
     setStep('results');
   };
 
@@ -508,7 +519,7 @@ const PlanAnalyzerPage = () => {
         </div>
       )}
 
-      {/* ═══ STEP 4: RESULTS ═══ */}
+      {/* ═══ STEP 4: RESULTS (same engine as Budget) ═══ */}
       {step === 'results' && results && data && (
         <div className="space-y-6">
           {/* Project Info */}
@@ -525,11 +536,11 @@ const PlanAnalyzerPage = () => {
           {/* Panel Count */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'Muros Ext.', value: results.wallPanels, color: 'bg-cyan-500' },
-              { label: 'Muros Int.', value: results.internalPanels, color: 'bg-amber-500' },
-              { label: 'Piso', value: results.floorPanels, color: 'bg-emerald-500' },
-              { label: 'Techo', value: results.roofPanels, color: 'bg-violet-500' },
-              { label: 'TOTAL', value: results.totalPanels, color: 'bg-slate-900' },
+              { label: 'Muros Ext.', value: results.geo.cantMurosExt, color: 'bg-cyan-500' },
+              { label: 'Muros Int.', value: results.geo.cantMurosInt, color: 'bg-amber-500' },
+              { label: 'Piso', value: results.geo.cantPiso, color: 'bg-emerald-500' },
+              { label: 'Techo', value: results.geo.cantTecho, color: 'bg-violet-500' },
+              { label: 'TOTAL', value: results.geo.totalPaneles, color: 'bg-slate-900' },
             ].map((item, i) => (
               <div key={i} className={`${item.color} rounded-2xl p-5 text-white text-center`}>
                 <p className="text-[9px] font-bold uppercase tracking-widest opacity-70">{item.label}</p>
@@ -544,42 +555,49 @@ const PlanAnalyzerPage = () => {
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Geometria de la Casa</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { l: 'Area Planta', v: results.houseArea.toFixed(2), u: 'm2' },
-                { l: 'Perimetro', v: results.housePerimeter.toFixed(2), u: 'ml' },
-                { l: 'Area Muros Bruta', v: results.extWallAreaGross.toFixed(2), u: 'm2' },
-                { l: 'Area Muros Neta', v: results.extWallAreaNet.toFixed(2), u: 'm2' },
-                { l: 'Area Techo', v: results.roofArea.toFixed(2), u: 'm2' },
-                { l: 'Area Aberturas', v: results.openingsArea.toFixed(2), u: 'm2' },
-                { l: 'ML Tabiques', v: results.internalLinearMeters.toFixed(2), u: 'ml' },
-                { l: 'Perim. Paneles', v: results.totalPanelsPerimeter.toFixed(2), u: 'ml' },
-                { l: 'Perim. Corte', v: results.totalCutPerimeter.toFixed(2), u: 'ml' },
+                { l: 'Area Planta', v: results.geo.areaPiso?.toFixed(2), u: 'm2' },
+                { l: 'Perimetro Ext.', v: results.geo.perimExt?.toFixed(2), u: 'ml' },
+                { l: 'Area Muros Bruta', v: results.geo.areaMurosBruta?.toFixed(2), u: 'm2' },
+                { l: 'Area Techo', v: results.geo.areaTecho?.toFixed(2), u: 'm2' },
+                { l: 'ML Tabiques', v: results.geo.tabiques?.toFixed(2), u: 'ml' },
+                { l: 'Perim. Aberturas', v: results.geo.perimAberturas?.toFixed(2), u: 'ml' },
               ].map((r, i) => (
                 <div key={i} className="bg-slate-50 rounded-xl p-3">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{r.l}</p>
-                  <p className="text-lg font-black text-slate-800">{r.v} <span className="text-[10px] text-slate-400 font-bold">{r.u}</span></p>
+                  <p className="text-lg font-black text-slate-800">{r.v || '0'} <span className="text-[10px] text-slate-400 font-bold">{r.u}</span></p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Openings Summary */}
-          {data.aberturas.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Resumen de Aberturas</h3>
+          {/* Materials / Insumos Table */}
+          {results.items.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Listado de Insumos y Materiales</h3>
+                <div className="bg-orange-500 text-white px-4 py-1.5 rounded-xl text-xs font-black">
+                  Total: {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(results.total)}
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    <tr><th className="px-3 py-2 text-left">Tipo</th><th className="px-3 py-2">Denom.</th><th className="px-3 py-2">Cant.</th><th className="px-3 py-2">Ancho</th><th className="px-3 py-2">Alto</th><th className="px-3 py-2">Muro</th></tr>
+                  <thead className="bg-slate-900 text-[8px] font-black text-white uppercase tracking-widest">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Material</th>
+                      <th className="px-3 py-3 text-center">Unid.</th>
+                      <th className="px-3 py-3 text-center">Cant.</th>
+                      <th className="px-3 py-3 text-right">Unitario</th>
+                      <th className="px-4 py-3 text-right">Total</th>
+                    </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {data.aberturas.map((ab, i) => (
+                    {results.items.map((item, i) => (
                       <tr key={i} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-bold">{ab.tipo === 'door' ? 'Puerta' : 'Ventana'}</td>
-                        <td className="px-3 py-2 text-center font-black">{ab.denominacion}</td>
-                        <td className="px-3 py-2 text-center font-black">{ab.cantidad}</td>
-                        <td className="px-3 py-2 text-center">{ab.ancho}m</td>
-                        <td className="px-3 py-2 text-center">{ab.alto}m</td>
-                        <td className="px-3 py-2 text-center text-slate-400">{ab.muro_asociado}</td>
+                        <td className="px-4 py-2 font-bold text-slate-700">{item.name}</td>
+                        <td className="px-3 py-2 text-center text-slate-400 font-bold">{item.unit}</td>
+                        <td className="px-3 py-2 text-center font-black text-slate-800">{item.qty}</td>
+                        <td className="px-3 py-2 text-right font-mono text-slate-500">{new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(item.price)}</td>
+                        <td className="px-4 py-2 text-right font-black text-slate-900">{new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(item.total)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -590,7 +608,7 @@ const PlanAnalyzerPage = () => {
 
           {/* Actions */}
           <button onClick={goToBudget} className="w-full flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
-            <FileText size={18} /> Ir a Presupuesto con Insumos
+            <FileText size={18} /> Ir a Presupuesto Completo
           </button>
           <div className="flex gap-3">
             <button onClick={() => setStep('review')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors">
