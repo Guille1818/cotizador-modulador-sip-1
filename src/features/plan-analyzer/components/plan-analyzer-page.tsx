@@ -122,7 +122,7 @@ const PlanAnalyzerPage = () => {
   /* ── Reset ── */
   const reset = () => { setStep('upload'); setFile(null); setData(null); setResults(null); setError(null); setLastExtraction(null); };
 
-  /* ── Load extracted data into the main store ── */
+  /* ── Load extracted data into the main store for budget calculation ── */
   const loadToStore = () => {
     if (!data) return;
     const s = useStore.getState();
@@ -134,9 +134,76 @@ const PlanAnalyzerPage = () => {
     s.setDimensions({ width: d.ancho, length: d.largo, height: baseH, ridgeHeight: ridgeH });
 
     // Set project info
-    s.setProjectData({ clientName: data.proyecto.nombre, location: data.proyecto.proyectista, date: data.proyecto.fecha });
+    s.setProjectData({
+      clientName: data.proyecto.nombre,
+      location: data.proyecto.proyectista,
+      date: data.proyecto.fecha,
+    });
 
-    // Clear existing walls and openings
+    // Configure facade types from extracted exterior walls
+    // Map extracted wall types to facade configs
+    const mapWallType = (tipo: string): 'recto' | 'inclinado' | '2-aguas' => {
+      if (tipo === 'gable') return '2-aguas';
+      if (tipo === 'mono-slope') return 'inclinado';
+      return 'recto';
+    };
+
+    // Try to match extracted walls to facades by name
+    const facadeMap: Record<FacadeSide, { type: 'recto' | 'inclinado' | '2-aguas'; hBase: number; hMax: number }> = {
+      Norte: { type: 'recto', hBase: baseH, hMax: baseH },
+      Sur: { type: 'recto', hBase: baseH, hMax: baseH },
+      Este: { type: 'recto', hBase: baseH, hMax: baseH },
+      Oeste: { type: 'recto', hBase: baseH, hMax: baseH },
+    };
+
+    data.muros_exteriores.forEach(m => {
+      const name = m.nombre.toLowerCase();
+      let side: FacadeSide | null = null;
+      if (name.includes('norte') || name.includes('front') || name.includes('frontal')) side = 'Norte';
+      else if (name.includes('sur') || name.includes('poster') || name.includes('back') || name.includes('trasera')) side = 'Sur';
+      else if (name.includes('este') || name.includes('east') || name.includes('derech') || name.includes('right')) side = 'Este';
+      else if (name.includes('oeste') || name.includes('west') || name.includes('izquier') || name.includes('left')) side = 'Oeste';
+      else if (name.includes('lateral')) {
+        // Assign to first unassigned lateral
+        if (facadeMap.Este.type === 'recto' && facadeMap.Este.hBase === baseH) side = 'Este';
+        else side = 'Oeste';
+      } else if (name.includes('long') || name.includes('largo')) {
+        if (facadeMap.Norte.type === 'recto' && facadeMap.Norte.hBase === baseH) side = 'Norte';
+        else side = 'Sur';
+      } else if (name.includes('short') || name.includes('corto') || name.includes('ancho')) {
+        if (facadeMap.Este.type === 'recto' && facadeMap.Este.hBase === baseH) side = 'Este';
+        else side = 'Oeste';
+      }
+
+      if (side) {
+        facadeMap[side] = {
+          type: mapWallType(m.tipo),
+          hBase: m.altura_base,
+          hMax: m.altura_pico,
+        };
+      }
+    });
+
+    // If no walls were matched by name, distribute by geometry
+    const unmatchedWalls = data.muros_exteriores.filter(m => {
+      const name = m.nombre.toLowerCase();
+      return !['norte','sur','este','oeste','front','back','right','left','lateral','long','short','frontal','poster','trasera','derech','izquier'].some(k => name.includes(k));
+    });
+
+    const allSides: FacadeSide[] = ['Norte', 'Sur', 'Este', 'Oeste'];
+    unmatchedWalls.forEach((m, i) => {
+      const side = allSides[i % 4];
+      if (facadeMap[side].type === 'recto' && facadeMap[side].hBase === baseH) {
+        facadeMap[side] = { type: mapWallType(m.tipo), hBase: m.altura_base, hMax: m.altura_pico };
+      }
+    });
+
+    // Apply facade configs
+    allSides.forEach(side => {
+      s.updateFacadeConfig(side, facadeMap[side]);
+    });
+
+    // Clear existing interior walls and openings
     useStore.getState().interiorWalls.forEach(w => s.removeWall(w.id));
     useStore.getState().openings.forEach(o => s.removeOpening(o.id));
 
@@ -150,8 +217,7 @@ const PlanAnalyzerPage = () => {
       });
     });
 
-    // Add openings distributed across facades
-    const facadeSides: FacadeSide[] = ['Norte', 'Sur', 'Este', 'Oeste'];
+    // Add openings to facades
     data.aberturas.forEach((ab) => {
       let side: FacadeSide = 'Norte';
       const muro = ab.muro_asociado.toLowerCase();
@@ -159,20 +225,36 @@ const PlanAnalyzerPage = () => {
       else if (muro.includes('sur') || muro.includes('poster') || muro.includes('back')) side = 'Sur';
       else if (muro.includes('este') || muro.includes('east') || muro.includes('derech')) side = 'Este';
       else if (muro.includes('oeste') || muro.includes('west') || muro.includes('izquier')) side = 'Oeste';
-      else side = facadeSides[Math.floor(Math.random() * 4)];
+      else if (muro.includes('interior') || muro.includes('int')) side = 'Norte';
+      else {
+        // Distribute to the facade with the longest wall
+        const longest = data.muros_exteriores.reduce((a, b) => b.largo > a.largo ? b : a, data.muros_exteriores[0]);
+        const ln = longest?.nombre.toLowerCase() || '';
+        if (ln.includes('norte') || ln.includes('front')) side = 'Norte';
+        else if (ln.includes('sur')) side = 'Sur';
+        else side = 'Norte';
+      }
 
       for (let q = 0; q < ab.cantidad; q++) {
         s.addOpening(side, ab.tipo === 'door' ? 'door' : 'window');
-        const lastOpening = useStore.getState().openings[useStore.getState().openings.length - 1];
-        if (lastOpening) {
-          s.updateOpening(lastOpening.id, { width: ab.ancho, height: ab.alto, x: 0.5 + q * (ab.ancho + 0.3) });
+        const lastOp = useStore.getState().openings;
+        const last = lastOp[lastOp.length - 1];
+        if (last) {
+          s.updateOpening(last.id, { width: ab.ancho, height: ab.alto, x: 0.5 + q * (ab.ancho + 0.3) });
         }
       }
     });
+
+    // Set foundation type from extraction
+    const fund = data.estructura.tipo_fundacion.toLowerCase();
+    if (fund.includes('platea') || fund.includes('losa') || fund.includes('hormig')) {
+      s.setFoundationType('platea');
+    } else {
+      s.setFoundationType('estructura');
+    }
   };
 
   const goToBudget = () => { loadToStore(); router.push('/budget'); };
-  const goToEngineering = () => { loadToStore(); router.push('/engineering'); };
 
   /* ── Update helpers ── */
   const updateData = (patch: Partial<GeminiExtractionResult>) => setData(prev => prev ? { ...prev, ...patch } : prev);
@@ -419,11 +501,8 @@ const PlanAnalyzerPage = () => {
             <button onClick={calculate} className="flex-1 flex items-center justify-center gap-3 py-4 bg-cyan-500 hover:bg-cyan-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors">
               <CheckCircle2 size={18} /> Ver Resumen
             </button>
-            <button onClick={goToEngineering} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors">
-              <Ruler size={18} /> Ver Plano
-            </button>
             <button onClick={goToBudget} className="flex-1 flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
-              <FileText size={18} /> Presupuesto
+              <FileText size={18} /> Ir a Presupuesto
             </button>
           </div>
         </div>
@@ -510,14 +589,9 @@ const PlanAnalyzerPage = () => {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <button onClick={goToEngineering} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors">
-              <Ruler size={18} /> Ver Plano 2D/3D
-            </button>
-            <button onClick={goToBudget} className="flex-1 flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
-              <FileText size={18} /> Ir a Presupuesto
-            </button>
-          </div>
+          <button onClick={goToBudget} className="w-full flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-2xl text-sm font-black uppercase tracking-wider transition-colors shadow-lg shadow-orange-500/20">
+            <FileText size={18} /> Ir a Presupuesto con Insumos
+          </button>
           <div className="flex gap-3">
             <button onClick={() => setStep('review')} className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors">
               <RotateCcw size={14} /> Editar Datos
