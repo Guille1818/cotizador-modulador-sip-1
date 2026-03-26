@@ -569,13 +569,17 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                 const lWall = Math.sqrt(Math.pow(eX - sX, 2) + Math.pow(eZ - sZ, 2));
                 if (!lWall || isNaN(lWall) || lWall < 0.01) return null;
 
-                // INTERIOR WALLS SYNC: Match roof profile exactly
+                // INTERIOR WALLS SYNC: Must stay below roof
                 const hStart = getPointHeight(sX, sZ);
                 const hEnd = getPointHeight(eX, eZ);
 
-                // Keep them within a reasonable minimum if ridge is very low
-                const h1 = Math.max(2.44, hStart);
-                const h2 = Math.max(2.44, hEnd);
+                // Tabiques must not exceed roof height — subtract roof thickness so they sit below the roof
+                const ROOF_THICKNESS = 0.18;
+                const h1 = Math.min(hStart - ROOF_THICKNESS, Math.min(hStart, hEnd));
+                const h2 = Math.min(hEnd - ROOF_THICKNESS, Math.max(hStart, hEnd));
+                // Clamp: tabique height = min(roofHeight - thickness, panel standard 2.44)
+                const h1Clamped = Math.min(h1, 2.44);
+                const h2Clamped = Math.min(h2, 2.44);
 
                 let posI: [number, number, number] = [0, 0, 0], rotI: [number, number, number] = [0, 0, 0];
                 const isVert = w.isVertical || Math.abs(eX - sX) < 0.01;
@@ -588,14 +592,9 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                     rotI = [0, 0, 0];
                 }
 
-                // Render interior wall with same slope support as exterior walls
-                const effBase = 2.44; // Default interior wall panel height
                 return (
                     <group key={w.id}>
-                        <WallSegment xStart={0} xEnd={lWall} h1={Math.min(h1, effBase)} h2={Math.min(h2, effBase)} material={intMat} position={posI} rotation={rotI} />
-                        {(h1 > effBase || h2 > effBase) && (
-                            <WallSegment xStart={0} xEnd={lWall} h1={Math.max(0, h1 - effBase)} h2={Math.max(0, h2 - effBase)} material={intMat} position={[posI[0], effBase, posI[2]]} rotation={rotI} />
-                        )}
+                        <WallSegment xStart={0} xEnd={lWall} h1={h1Clamped} h2={h2Clamped} material={intMat} position={posI} rotation={rotI} />
                     </group>
                 );
             })}
