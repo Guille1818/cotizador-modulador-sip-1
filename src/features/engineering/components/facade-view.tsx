@@ -15,7 +15,7 @@ interface FacadeViewProps {
 
 const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }: FacadeViewProps) => {
     const side = type as FacadeSide;
-    const { width = 0, length = 0, openings = [], facadeConfigs = {} } = data || {};
+    const { width = 0, length = 0, openings = [], facadeConfigs = {}, isPrint = false } = data || {};
     const { addOpening, removeOpening, updateOpening, togglePerimeterVisibility, project, activeOpeningId, setActiveOpeningId } = useStore();
 
     const isVisible = (project as any).perimeterVisibility?.[type] !== false;
@@ -139,6 +139,46 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
         }
     }
 
+    // ── Print mode: SVG only, no controls, compact ──
+    if (isPrint) {
+        const printMargin = 10;
+        const svgW = wallWidth * scale + printMargin * 2;
+        const svgH = Math.max(h1, h2, 2.44) * scale + printMargin * 2;
+        const printPoints = points.map(p => {
+            const [x, y] = p.split(',').map(Number);
+            return `${x + printMargin},${svgH - y - printMargin}`;
+        }).join(' ');
+
+        return (
+            <svg width="100%" height="100%" viewBox={`0 0 ${svgW} ${svgH}`} preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <clipPath id={`clip-print-${type}`}>
+                        <polygon points={printPoints} />
+                    </clipPath>
+                </defs>
+                <polygon points={printPoints} fill="white" stroke="#334155" strokeWidth="2" />
+                <g clipPath={`url(#clip-print-${type})`}>
+                    {panelElements.map((el: React.ReactNode) => {
+                        if (!React.isValidElement(el)) return el;
+                        const props = el.props as { x?: number; y?: number };
+                        return React.cloneElement(el, { x: (props.x || 0) - margin + printMargin, y: (props.y || 0) - (svgHeight - svgH) } as Record<string, unknown>);
+                    })}
+                </g>
+                {facadeOpenings.map((o: any) => (
+                    <g key={o.id} transform={`translate(${o.x * scale + printMargin}, ${svgH - (o.y + o.height) * scale - printMargin})`}>
+                        <rect width={o.width * scale} height={o.height * scale}
+                            fill={o.type === 'window' ? '#f0f9ff' : '#f8fafc'}
+                            stroke="#0ea5e9" strokeWidth="1.5" rx="1" />
+                        <text x={o.width * scale / 2} y={-3} textAnchor="middle" fontSize="5" fontWeight="bold" fill="#0369a1">{o.width.toFixed(2)}m</text>
+                    </g>
+                ))}
+                {/* Dimension label */}
+                <text x={svgW / 2} y={svgH - 2} textAnchor="middle" fontSize="5" fontWeight="bold" fill="#64748b">{wallWidth.toFixed(2)}m</text>
+            </svg>
+        );
+    }
+
+    // ── Interactive mode (engineering view) ──
     return (
         <div className={`bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full relative group transition-all duration-300 ${!isVisible ? 'bg-slate-100 ring-1 ring-slate-200' : ''}`}>
 
