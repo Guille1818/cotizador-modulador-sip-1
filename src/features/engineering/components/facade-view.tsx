@@ -118,36 +118,81 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
         return `${x + margin},${svgHeight - y - margin}`;
     }).join(' ');
 
-    // Manual Panel Grid (1.22 x 2.44) starting from bottom
-    const gridCols = Math.ceil(wallWidth / 1.22);
-    const gridRows = Math.ceil(Math.max(h1, h2) / 2.44);
+    // Panel Grid (1.22m x 2.44m) — aligned to bottom-left of wall
+    const PW = 1.22; // panel width in meters
+    const PH = 2.44; // panel height in meters
+    const gridCols = Math.ceil(wallWidth / PW);
+    const gridRows = Math.ceil(Math.max(h1, h2) / PH);
     const panelElements: React.ReactNode[] = [];
+
     for (let c = 0; c < gridCols; c++) {
+        // Clip last column width to wall edge
+        const pw = Math.min(PW, wallWidth - c * PW);
         for (let r = 0; r < gridRows; r++) {
             panelElements.push(
                 <rect
                     key={`p-${c}-${r}`}
-                    x={c * 1.22 * scale + margin}
-                    y={svgHeight - (r + 1) * 2.44 * scale - margin}
-                    width={1.22 * scale}
-                    height={2.44 * scale}
+                    x={c * PW * scale + margin}
+                    y={svgHeight - (r + 1) * PH * scale - margin}
+                    width={pw * scale}
+                    height={PH * scale}
                     fill="none"
-                    stroke="#e2e8f0"
-                    strokeWidth="0.5"
+                    stroke="#94a3b8"
+                    strokeWidth="1"
+                    strokeDasharray="4 2"
                 />
             );
         }
     }
 
+    // Vertical panel division lines (solid, more visible)
+    const panelLines: React.ReactNode[] = [];
+    for (let c = 1; c < gridCols; c++) {
+        const lx = c * PW * scale + margin;
+        panelLines.push(
+            <line key={`vl-${c}`} x1={lx} y1={svgHeight - margin} x2={lx} y2={svgHeight - Math.max(h1, h2) * scale - margin} stroke="#64748b" strokeWidth="0.8" strokeDasharray="6 3" />
+        );
+    }
+    // Horizontal panel division lines
+    for (let r = 1; r < gridRows; r++) {
+        const ly = svgHeight - r * PH * scale - margin;
+        panelLines.push(
+            <line key={`hl-${r}`} x1={margin} y1={ly} x2={wallWidth * scale + margin} y2={ly} stroke="#64748b" strokeWidth="0.8" strokeDasharray="6 3" />
+        );
+    }
+
     // ── Print mode: SVG only, no controls, compact ──
     if (isPrint) {
-        const printMargin = 10;
-        const svgW = wallWidth * scale + printMargin * 2;
-        const svgH = Math.max(h1, h2, 2.44) * scale + printMargin * 2;
+        const pm = 10; // print margin
+        const svgW = wallWidth * scale + pm * 2;
+        const svgH = Math.max(h1, h2, 2.44) * scale + pm * 2;
         const printPoints = points.map(p => {
             const [x, y] = p.split(',').map(Number);
-            return `${x + printMargin},${svgH - y - printMargin}`;
+            return `${x + pm},${svgH - y - pm}`;
         }).join(' ');
+
+        // Rebuild panel elements for print margin
+        const printPanels: React.ReactNode[] = [];
+        for (let c = 0; c < gridCols; c++) {
+            const pw = Math.min(PW, wallWidth - c * PW);
+            for (let r = 0; r < gridRows; r++) {
+                printPanels.push(
+                    <rect key={`pp-${c}-${r}`}
+                        x={c * PW * scale + pm} y={svgH - (r + 1) * PH * scale - pm}
+                        width={pw * scale} height={PH * scale}
+                        fill="none" stroke="#94a3b8" strokeWidth="0.8" strokeDasharray="3 1.5" />
+                );
+            }
+        }
+        const printLines: React.ReactNode[] = [];
+        for (let c = 1; c < gridCols; c++) {
+            const lx = c * PW * scale + pm;
+            printLines.push(<line key={`pvl-${c}`} x1={lx} y1={svgH - pm} x2={lx} y2={svgH - Math.max(h1, h2) * scale - pm} stroke="#64748b" strokeWidth="0.6" strokeDasharray="4 2" />);
+        }
+        for (let r = 1; r < gridRows; r++) {
+            const ly = svgH - r * PH * scale - pm;
+            printLines.push(<line key={`phl-${r}`} x1={pm} y1={ly} x2={wallWidth * scale + pm} y2={ly} stroke="#64748b" strokeWidth="0.6" strokeDasharray="4 2" />);
+        }
 
         return (
             <svg width="100%" height="100%" viewBox={`0 0 ${svgW} ${svgH}`} preserveAspectRatio="xMidYMid meet">
@@ -156,23 +201,19 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                         <polygon points={printPoints} />
                     </clipPath>
                 </defs>
-                <polygon points={printPoints} fill="white" stroke="#334155" strokeWidth="2" />
+                <polygon points={printPoints} fill="#fafafa" stroke="#334155" strokeWidth="2" />
                 <g clipPath={`url(#clip-print-${type})`}>
-                    {panelElements.map((el: React.ReactNode) => {
-                        if (!React.isValidElement(el)) return el;
-                        const props = el.props as { x?: number; y?: number };
-                        return React.cloneElement(el, { x: (props.x || 0) - margin + printMargin, y: (props.y || 0) - (svgHeight - svgH) } as Record<string, unknown>);
-                    })}
+                    {printPanels}
+                    {printLines}
                 </g>
                 {facadeOpenings.map((o: any) => (
-                    <g key={o.id} transform={`translate(${o.x * scale + printMargin}, ${svgH - (o.y + o.height) * scale - printMargin})`}>
+                    <g key={o.id} transform={`translate(${o.x * scale + pm}, ${svgH - (o.y + o.height) * scale - pm})`}>
                         <rect width={o.width * scale} height={o.height * scale}
                             fill={o.type === 'window' ? '#f0f9ff' : '#f8fafc'}
                             stroke="#0ea5e9" strokeWidth="1.5" rx="1" />
                         <text x={o.width * scale / 2} y={-3} textAnchor="middle" fontSize="5" fontWeight="bold" fill="#0369a1">{o.width.toFixed(2)}m</text>
                     </g>
                 ))}
-                {/* Dimension label */}
                 <text x={svgW / 2} y={svgH - 2} textAnchor="middle" fontSize="5" fontWeight="bold" fill="#64748b">{wallWidth.toFixed(2)}m</text>
             </svg>
         );
@@ -256,11 +297,12 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                     </defs>
 
                     {/* Wall Background */}
-                    <polygon points={polygonPoints} fill="white" stroke="#334155" strokeWidth="3" />
+                    <polygon points={polygonPoints} fill="#fafafa" stroke="#334155" strokeWidth="3" />
 
-                    {/* Manual Panels with clipPath */}
+                    {/* Panel grid with clipPath */}
                     <g clipPath={`url(#clip-${type})`}>
                         {panelElements}
+                        {panelLines}
                     </g>
 
                     {/* Openings */}
