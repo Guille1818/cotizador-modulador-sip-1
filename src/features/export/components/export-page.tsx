@@ -391,25 +391,23 @@ const Export: React.FC = () => {
           <ProjectFooter price={finalTotal} pageNumber={3} />
         </div>
 
-        {/* PAGE 4 & 5: FACHADAS */}
-        {([['Norte', 'Sur'] as const, ['Este', 'Oeste'] as const] as const).map((sides, pIdx) => (
-          <div key={pIdx} className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
-            <PageHeader title={`Fachadas - ${sides[0]} y ${sides[1]}`} />
-            <div className="flex-1 flex flex-col justify-around py-4">
-              {sides.map(side => (
-                <div key={side} className="flex-1 flex flex-col justify-center space-y-4">
-                  <h3 className="text-center text-[12px] font-black text-slate-900 uppercase tracking-[0.4em]">Fachada: {side}</h3>
-                  <div className="flex-1 bg-white rounded-2xl border border-slate-100 p-2 flex items-center justify-center overflow-hidden">
-                    <FacadeView type={side} data={{ ...dimensions, openings, facadeConfigs, project, isPrint: true }} scale={35} />
-                  </div>
+        {/* PAGE 4: FACHADAS (4 en una sola página) */}
+        <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
+          <PageHeader title="Fachadas" />
+          <div className="flex-1 grid grid-cols-1 grid-rows-4 gap-2 py-2">
+            {(['Norte', 'Sur', 'Este', 'Oeste'] as const).map(side => (
+              <div key={side} className="flex flex-col justify-center space-y-1 min-h-0">
+                <h3 className="text-center text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">Fachada: {side}</h3>
+                <div className="flex-1 bg-white rounded-xl border border-slate-100 p-1 flex items-center justify-center overflow-hidden min-h-0">
+                  <FacadeView type={side} data={{ ...dimensions, openings, facadeConfigs, project, isPrint: true }} scale={18} />
                 </div>
-              ))}
-            </div>
-            <ProjectFooter price={finalTotal} pageNumber={4 + pIdx} />
+              </div>
+            ))}
           </div>
-        ))}
+          <ProjectFooter price={finalTotal} pageNumber={4} />
+        </div>
 
-        {/* PAGE 6: MEMORIA */}
+        {/* PAGE 5: MEMORIA */}
         <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Memoria de Materiales" />
           <div className="flex-1 flex flex-col justify-center space-y-12">
@@ -461,10 +459,10 @@ const Export: React.FC = () => {
               </div>
             </section>
           </div>
-          <ProjectFooter price={finalTotal} pageNumber={6} />
+          <ProjectFooter price={finalTotal} pageNumber={5} />
         </div>
 
-        {/* PAGE 7: ECONOMICA PANELES */}
+        {/* PAGE 6: ECONOMICA PANELES */}
         <div className="pdf-page w-[210mm] h-[297mm] bg-white p-[10mm] flex flex-col text-slate-900 border border-slate-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 mb-10 print:mb-0 print:border-none print:hover:shadow-none print:hover:translate-y-0">
           <PageHeader title="Propuesta Economica - Sistema SIP" />
           <div className="flex-1 flex flex-col gap-4 min-h-0">
@@ -500,7 +498,7 @@ const Export: React.FC = () => {
               </div>
             </div>
           </div>
-          <ProjectFooter price={finalTotal} pageNumber={7} />
+          <ProjectFooter price={finalTotal} pageNumber={6} />
         </div>
 
         {/* PAGE 8 & potentially 9: ECONOMICA INSUMOS */}
@@ -557,7 +555,7 @@ const Export: React.FC = () => {
                 </div>
               )}
             </div>
-            <ProjectFooter price={finalTotal} pageNumber={8 + pageIdx} hidePrice={pageIdx < suppliesPages.length - 1} />
+            <ProjectFooter price={finalTotal} pageNumber={7 + pageIdx} hidePrice={pageIdx < suppliesPages.length - 1} />
           </div>
         ))}
 
@@ -614,7 +612,7 @@ const Export: React.FC = () => {
                 ))}
               </div>
             </div>
-            <ProjectFooter price={finalTotal} pageNumber={8 + suppliesPages.length} />
+            <ProjectFooter price={finalTotal} pageNumber={7 + suppliesPages.length} />
           </div>
         </div>
 
@@ -631,7 +629,7 @@ const Export: React.FC = () => {
                 ))}
               </div>
             </div>
-            <ProjectFooter price={finalTotal} pageNumber={8 + suppliesPages.length + 1} hidePrice={false} />
+            <ProjectFooter price={finalTotal} pageNumber={7 + suppliesPages.length + 1} hidePrice={false} />
           </div>
         )}
       </div>

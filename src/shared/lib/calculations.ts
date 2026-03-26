@@ -144,8 +144,26 @@ export const calculateGeometry = (
     return acc + (w * h);
   }, 0);
 
-  // 5. Roof Area estimation
-  const areaTecho = areaPiso * 1.25;
+  // 5. Roof Area estimation — max 12% over floor area, based on real slope
+  // Calculate the dominant slope factor from facade configs
+  let maxSlopeFactor = 0;
+  Object.entries(facadeConfigs).forEach(([side, config]) => {
+    const facadeSide = side as FacadeSide;
+    const isFB = facadeSide === 'Norte' || facadeSide === 'Sur';
+    const { hBase, hMax, type } = config as FacadeConfig;
+    if (type === 'recto' || hMax <= hBase) return;
+    // The run (horizontal distance the slope covers)
+    const run = type === '2-aguas'
+      ? (isFB ? width : length) / 2  // slope runs to center
+      : (isFB ? width : length);     // slope runs full width
+    const rise = hMax - hBase;
+    // slope factor = sqrt(rise² + run²) / run  — ratio of sloped length to horizontal
+    const factor = Math.sqrt(rise * rise + run * run) / run - 1; // extra fraction
+    if (factor > maxSlopeFactor) maxSlopeFactor = factor;
+  });
+  // Cap the slope increment at 12%
+  const roofIncrement = Math.min(maxSlopeFactor, 0.12);
+  const areaTecho = areaPiso * (1 + roofIncrement);
 
   // 6. Walls Area (Net)
   const areaMurosExtNeta = Math.max(0, areaMurosExtBruta - areaAberturas);
