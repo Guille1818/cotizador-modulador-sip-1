@@ -219,9 +219,102 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
         );
     }
 
+    // ── Shared SVG renderer (used in both card and maximized views) ──
+    const renderSVG = (svgScale: number, m: number) => {
+        const sW = wallWidth * svgScale + m * 2;
+        const sH = Math.max(h1, h2, 2.44) * svgScale + m * 2;
+
+        // Wall polygon points with this margin
+        const pts: string[] = [];
+        pts.push(`0,0`);
+        pts.push(`${wallWidth * svgScale},0`);
+        if (config.type === 'recto') {
+            pts.push(`${wallWidth * svgScale},${h1 * svgScale}`);
+            pts.push(`0,${h1 * svgScale}`);
+        } else if (config.type === 'inclinado') {
+            pts.push(`${wallWidth * svgScale},${h2 * svgScale}`);
+            pts.push(`0,${h1 * svgScale}`);
+        } else if (config.type === '2-aguas') {
+            pts.push(`${wallWidth * svgScale},${h1 * svgScale}`);
+            pts.push(`${(wallWidth * svgScale) / 2},${h2 * svgScale}`);
+            pts.push(`0,${h1 * svgScale}`);
+        }
+        const polyPts = pts.map(p => {
+            const [x, y] = p.split(',').map(Number);
+            return `${x + m},${sH - y - m}`;
+        }).join(' ');
+
+        // Panel grid for this scale
+        const pEls: React.ReactNode[] = [];
+        for (let c = 0; c < gridCols; c++) {
+            const pw = Math.min(PW, wallWidth - c * PW);
+            for (let r = 0; r < gridRows; r++) {
+                pEls.push(
+                    <rect key={`p-${c}-${r}`}
+                        x={c * PW * svgScale + m} y={sH - (r + 1) * PH * svgScale - m}
+                        width={pw * svgScale} height={PH * svgScale}
+                        fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 2" />
+                );
+            }
+        }
+        // Division lines
+        const pLines: React.ReactNode[] = [];
+        for (let c = 1; c < gridCols; c++) {
+            const lx = c * PW * svgScale + m;
+            pLines.push(<line key={`vl-${c}`} x1={lx} y1={sH - m} x2={lx} y2={sH - Math.max(h1, h2) * svgScale - m} stroke="#64748b" strokeWidth="0.8" strokeDasharray="6 3" />);
+        }
+        for (let r = 1; r < gridRows; r++) {
+            const ly = sH - r * PH * svgScale - m;
+            pLines.push(<line key={`hl-${r}`} x1={m} y1={ly} x2={wallWidth * svgScale + m} y2={ly} stroke="#64748b" strokeWidth="0.8" strokeDasharray="6 3" />);
+        }
+
+        const clipId = `clip-${type}-${svgScale}`;
+
+        return (
+            <svg width="100%" height="100%" viewBox={`0 0 ${sW} ${sH}`} preserveAspectRatio="xMidYMid meet" className={!isVisible ? 'opacity-20' : ''}>
+                <defs>
+                    <clipPath id={clipId}><polygon points={polyPts} /></clipPath>
+                </defs>
+                <polygon points={polyPts} fill="#fafafa" stroke="#334155" strokeWidth="2.5" />
+                <g clipPath={`url(#${clipId})`}>
+                    {pEls}
+                    {pLines}
+                </g>
+                {facadeOpenings.map((o: any) => (
+                    <g key={o.id}
+                        transform={`translate(${o.x * svgScale + m}, ${sH - (o.y + o.height) * svgScale - m})`}
+                        onMouseDown={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); setInteraction('move'); }}
+                        className="cursor-move group/op">
+                        <rect width={o.width * svgScale} height={o.height * svgScale}
+                            fill={o.type === 'window' ? (activeOpeningId === o.id ? '#e0f2fe' : '#f0f9ff') : (activeOpeningId === o.id ? '#f1f5f9' : '#f8fafc')}
+                            stroke={activeOpeningId === o.id ? '#0284c7' : '#0ea5e9'}
+                            strokeWidth={activeOpeningId === o.id ? 3 : 2} rx="2" />
+                        <g transform={`translate(${o.width * svgScale / 2}, -5)`}>
+                            <rect x="-15" y="-12" width="30" height="10" rx="2" fill="white" opacity="0.9" />
+                            <text textAnchor="middle" fontSize="6" fontWeight="bold" fill="#0369a1">{o.width.toFixed(2)}m</text>
+                        </g>
+                        <g transform={`translate(${o.width * svgScale + 5}, ${o.height * svgScale / 2}) rotate(90)`}>
+                            <rect x="-15" y="-12" width="30" height="10" rx="2" fill="white" opacity="0.9" />
+                            <text textAnchor="middle" fontSize="6" fontWeight="bold" fill="#0369a1">{o.height.toFixed(2)}m</text>
+                        </g>
+                        <circle cx={o.width * svgScale} cy={0} r={5} fill="white" stroke="#0ea5e9"
+                            className="cursor-ne-resize opacity-0 group-hover/op:opacity-100"
+                            onMouseDown={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); setInteraction('resize'); }} />
+                        <g transform={`translate(${-10}, ${-10})`}
+                            className="cursor-pointer opacity-0 group-hover/op:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); removeOpening(o.id); setActiveOpeningId(null); }}>
+                            <circle r="10" fill="#ef4444" />
+                            <g transform="translate(-6,-6) scale(0.65)"><Trash2 size={18} color="white" /></g>
+                        </g>
+                    </g>
+                ))}
+            </svg>
+        );
+    };
+
     // ── Interactive mode (engineering view) ──
     return (
-        <div className={`bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full relative group transition-all duration-300 ${!isVisible ? 'bg-slate-100 ring-1 ring-slate-200' : ''}`}>
+        <div className={`bg-white rounded-2xl border border-slate-200 flex flex-col h-full relative group transition-all duration-300 ${!isVisible ? 'bg-slate-100 ring-1 ring-slate-200' : ''}`}>
 
             {/* Top Badges and Controls */}
             <div className="absolute top-2 left-2 right-2 z-[40] flex items-center justify-between pointer-events-none">
@@ -273,9 +366,7 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                 </div>
             </div>
 
-
-
-            <div className={`flex-1 flex items-center justify-center p-2 bg-slate-50/50 transition-all duration-300 relative ${!isVisible ? 'bg-slate-200/50 grayscale border-dashed border-2 m-2 rounded-xl' : ''}`} onMouseDown={() => isVisible && setActiveOpeningId(null)}>
+            <div className={`flex-1 flex items-center justify-center p-2 min-h-0 bg-slate-50/50 transition-all duration-300 relative ${!isVisible ? 'bg-slate-200/50 grayscale border-dashed border-2 m-2 rounded-xl' : ''}`} onMouseDown={() => isVisible && setActiveOpeningId(null)}>
                 {!isVisible && (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-100/40 backdrop-blur-[2px] rounded-xl">
                         <div className="bg-rose-600 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl animate-pulse">
@@ -289,67 +380,7 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
                         </button>
                     </div>
                 )}
-                <svg width="100%" height="100%" viewBox={`0 0 ${wallWidth * scale + margin * 2} ${svgHeight}`} preserveAspectRatio="xMidYMid meet" className={!isVisible ? 'opacity-20' : ''}>
-                    <defs>
-                        <clipPath id={`clip-${type}`}>
-                            <polygon points={polygonPoints} />
-                        </clipPath>
-                    </defs>
-
-                    {/* Wall Background */}
-                    <polygon points={polygonPoints} fill="#fafafa" stroke="#334155" strokeWidth="3" />
-
-                    {/* Panel grid with clipPath */}
-                    <g clipPath={`url(#clip-${type})`}>
-                        {panelElements}
-                        {panelLines}
-                    </g>
-
-                    {/* Openings */}
-                    {facadeOpenings.map((o: any) => (
-                        <g
-                            key={o.id}
-                            transform={`translate(${o.x * scale + margin}, ${svgHeight - (o.y + o.height) * scale - margin})`}
-                            onMouseDown={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); setInteraction('move'); }}
-                            className="cursor-move group/op"
-                        >
-                            <rect
-                                width={o.width * scale} height={o.height * scale}
-                                fill={o.type === 'window' ? (activeOpeningId === o.id ? '#e0f2fe' : '#f0f9ff') : (activeOpeningId === o.id ? '#f1f5f9' : '#f8fafc')}
-                                stroke={activeOpeningId === o.id ? '#0284c7' : '#0ea5e9'}
-                                strokeWidth={activeOpeningId === o.id ? 3 : 2} rx="2"
-                            />
-
-                            {/* Opening Dimensions Labels */}
-                            <g transform={`translate(${o.width * scale / 2}, -5)`}>
-                                <rect x="-15" y="-12" width="30" height="10" rx="2" fill="white" opacity="0.9" />
-                                <text textAnchor="middle" fontSize="6" fontWeight="bold" fill="#0369a1">{o.width.toFixed(2)}m</text>
-                            </g>
-                            <g transform={`translate(${o.width * scale + 5}, ${o.height * scale / 2}) rotate(90)`}>
-                                <rect x="-15" y="-12" width="30" height="10" rx="2" fill="white" opacity="0.9" />
-                                <text textAnchor="middle" fontSize="6" fontWeight="bold" fill="#0369a1">{o.height.toFixed(2)}m</text>
-                            </g>
-
-                            {/* Resize handle */}
-                            <circle
-                                cx={o.width * scale} cy={0} r={5} fill="white" stroke="#0ea5e9"
-                                className="cursor-ne-resize opacity-0 group-hover/op:opacity-100"
-                                onMouseDown={(e) => { e.stopPropagation(); setActiveOpeningId(o.id); setInteraction('resize'); }}
-                            />
-                            {/* Remove handle (Trash Icon) */}
-                            <g
-                                transform={`translate(${-10}, ${-10})`}
-                                className="cursor-pointer opacity-0 group-hover/op:opacity-100 transition-opacity"
-                                onClick={(e) => { e.stopPropagation(); removeOpening(o.id); setActiveOpeningId(null); }}
-                            >
-                                <circle r="10" fill="#ef4444" />
-                                <g transform="translate(-6,-6) scale(0.65)">
-                                    <Trash2 size={18} color="white" />
-                                </g>
-                            </g>
-                        </g>
-                    ))}
-                </svg>
+                {renderSVG(scale, margin)}
             </div>
             {/* Opening Compact Controls */}
             {activeOpeningId && isVisible && (() => {

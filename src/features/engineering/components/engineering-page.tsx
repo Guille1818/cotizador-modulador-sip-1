@@ -672,38 +672,20 @@ const Engineering = () => {
                ROW 4: FACADES STRIP
                ════════════════════════════════════════ */}
             {!isFloorPlanExpanded && (
-                <div className="space-y-4">
-                    {/* Frente / Fondo */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(['Norte', 'Sur'] as const).map(side => {
-                            const isVisible = (project as any).perimeterVisibility?.[side] !== false;
-                            return (
-                                <div key={side} className={`h-64 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
-                                    <FacadeView
-                                        type={side}
-                                        data={{ ...dimensions, openings, facadeConfigs }}
-                                        onMaximize={() => setMaximizedFacade(side)}
-                                    />
-                                </div>
-                            );
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(['Norte', 'Sur', 'Este', 'Oeste'] as const).map(side => {
+                        const isVisible = (project as any).perimeterVisibility?.[side] !== false;
+                        return (
+                            <div key={side} className={`min-h-[200px] max-h-[320px] bg-white rounded-2xl border shadow-sm relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
+                                <FacadeView
+                                    type={side}
+                                    data={{ ...dimensions, openings, facadeConfigs }}
+                                    onMaximize={() => setMaximizedFacade(side)}
+                                />
+                            </div>
+                        );
                         })}
                     </div>
-                    {/* Laterales */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(['Este', 'Oeste'] as const).map(side => {
-                            const isVisible = (project as any).perimeterVisibility?.[side] !== false;
-                            return (
-                                <div key={side} className={`h-56 bg-white rounded-2xl border shadow-sm overflow-hidden relative group transition-opacity ${isVisible ? 'border-slate-200' : 'border-slate-100 opacity-40'}`}>
-                                    <FacadeView
-                                        type={side}
-                                        data={{ ...dimensions, openings, facadeConfigs }}
-                                        onMaximize={() => setMaximizedFacade(side)}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
             )}
 
             {/* ════════════════════════════════════════
