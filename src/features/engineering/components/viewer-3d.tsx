@@ -247,8 +247,12 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
     });
     const intMat = new THREE.MeshStandardMaterial({ color: INT_WALL_COLOR, side: THREE.DoubleSide });
 
-    const minBaseH = Math.min(...Object.values(facadeConfigs).map((c: any) => Number(c.hBase) || 2.44));
-    const fixedIntH = Math.min(2.44, minBaseH);
+    const minBaseH = Object.values(facadeConfigs).length > 0
+        ? Math.min(...Object.values(facadeConfigs).map((c: any) => Number(c.hBase) || 2.44))
+        : 2.44;
+    // Altura de tabiques según modo: "roof" = altura real, "panel" = limitado a 2.44m (cielorraso)
+    const intHeightMode = (selections as any).interiorWallHeightMode ?? "roof";
+    const fixedIntH = intHeightMode === "panel" ? Math.min(2.44, minBaseH) : minBaseH;
 
     const is2AguasNS = facadeConfigs?.Norte?.type === '2-aguas' || facadeConfigs?.Sur?.type === '2-aguas';
     const is2AguasEW = facadeConfigs?.Este?.type === '2-aguas' || facadeConfigs?.Oeste?.type === '2-aguas';
@@ -923,7 +927,8 @@ const Viewer3D = () => {
         project = {},
         addSnapshot,
         beamOffset = 0,
-        setBeamOffset
+        setBeamOffset,
+        selections = {} as any,
     } = useStore();
     const canvasRef = React.useRef<HTMLDivElement>(null);
     const [captured, setCaptured] = React.useState(false);
