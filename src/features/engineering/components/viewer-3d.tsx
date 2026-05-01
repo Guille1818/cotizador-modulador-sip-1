@@ -229,9 +229,10 @@ interface HouseModelProps {
     project: any;
     beamOffset?: number;
     facadeMaterial?: FacadeMaterialType;
+    interiorWallHeightMode?: 'roof' | 'panel';
 }
 
-const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBeams, showRoofPlates, project, beamOffset = 0, facadeMaterial = 'osb' }: HouseModelProps) => {
+const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBeams, showRoofPlates, project, beamOffset = 0, facadeMaterial = 'osb', interiorWallHeightMode = 'roof' }: HouseModelProps) => {
     // CRITICAL SAFETY GUARD
     if (!facadeConfigs || !dimensions) return null;
 
@@ -251,7 +252,7 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
         ? Math.min(...Object.values(facadeConfigs).map((c: any) => Number(c.hBase) || 2.44))
         : 2.44;
     // Altura de tabiques según modo: "roof" = altura real, "panel" = limitado a 2.44m (cielorraso)
-    const intHeightMode = (selections as any).interiorWallHeightMode ?? "roof";
+    const intHeightMode = interiorWallHeightMode ?? "roof";
     const fixedIntH = intHeightMode === "panel" ? Math.min(2.44, minBaseH) : minBaseH;
 
     const is2AguasNS = facadeConfigs?.Norte?.type === '2-aguas' || facadeConfigs?.Sur?.type === '2-aguas';
@@ -971,7 +972,7 @@ const Viewer3D = () => {
                     shadow-camera-bottom={-30}
                     shadow-bias={-0.0001}
                 />
-                <HouseModel dimensions={dimensions} openings={openings} facadeConfigs={facadeConfigs} interiorWalls={interiorWalls} showBeams={showBeams} showRoofPlates={showRoofPlates} project={project} beamOffset={beamOffset} facadeMaterial={facadeMaterial} />
+                <HouseModel dimensions={dimensions} openings={openings} facadeConfigs={facadeConfigs} interiorWalls={interiorWalls} showBeams={showBeams} showRoofPlates={showRoofPlates} project={project} beamOffset={beamOffset} facadeMaterial={facadeMaterial} interiorWallHeightMode={(selections as any).interiorWallHeightMode ?? "roof"} />
                 <FactoryLogo />
                 <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
                 <ContactShadows opacity={0.25} scale={40} blur={2} far={10} position={[0, -0.01, 0]} />
