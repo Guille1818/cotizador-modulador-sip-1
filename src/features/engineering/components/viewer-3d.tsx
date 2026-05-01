@@ -582,9 +582,9 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
                 const ROOF_THICKNESS = 0.18;
                 const h1 = Math.min(hStart - ROOF_THICKNESS, Math.min(hStart, hEnd));
                 const h2 = Math.min(hEnd - ROOF_THICKNESS, Math.max(hStart, hEnd));
-                // Clamp: tabique height = min(roofHeight - thickness, panel standard 2.44)
-                const h1Clamped = Math.min(h1, 2.44);
-                const h2Clamped = Math.min(h2, 2.44);
+                // Clamp: usar fixedIntH que respeta el modo elegido (roof o panel/2.44m)
+                const h1Clamped = Math.min(h1, fixedIntH);
+                const h2Clamped = Math.min(h2, fixedIntH);
 
                 let posI: [number, number, number] = [0, 0, 0], rotI: [number, number, number] = [0, 0, 0];
                 const isVert = w.isVertical || Math.abs(eX - sX) < 0.01;
