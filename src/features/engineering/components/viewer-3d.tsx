@@ -580,11 +580,12 @@ const HouseModel = ({ dimensions, openings, facadeConfigs, interiorWalls, showBe
 
                 // Tabiques must not exceed roof height — subtract roof thickness so they sit below the roof
                 const ROOF_THICKNESS = 0.18;
-                const h1 = Math.min(hStart - ROOF_THICKNESS, Math.min(hStart, hEnd));
-                const h2 = Math.min(hEnd - ROOF_THICKNESS, Math.max(hStart, hEnd));
-                // Clamp: usar fixedIntH que respeta el modo elegido (roof o panel/2.44m)
-                const h1Clamped = Math.min(h1, fixedIntH);
-                const h2Clamped = Math.min(h2, fixedIntH);
+                // Modo "roof": tabique sigue el perfil real del techo (getPointHeight), tocando la cubierta
+                // Modo "panel": tabique se limita a 2.44m (para cielorraso suspendido plano)
+                const h1Roof = hStart - ROOF_THICKNESS;
+                const h2Roof = hEnd - ROOF_THICKNESS;
+                const h1Clamped = intHeightMode === "panel" ? Math.min(h1Roof, 2.44) : h1Roof;
+                const h2Clamped = intHeightMode === "panel" ? Math.min(h2Roof, 2.44) : h2Roof;
 
                 let posI: [number, number, number] = [0, 0, 0], rotI: [number, number, number] = [0, 0, 0];
                 const isVert = w.isVertical || Math.abs(eX - sX) < 0.01;
