@@ -30,7 +30,7 @@ export const INITIAL_PRICES: Product[] = [
     { id: "MAD_VIGA_TECHO_3X6", name: "Madera pino macizo G1 3x6x4.88 Mts", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_TECHO_VIC", name: "Madera pino macizo victoria 3x6x4.27Mts", unit: "UNID", price: 12544, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_MULTI", name: "Madera pino multilaminada 3x6Mts", unit: "UNID", price: 20750, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
-    { id: "MAD_VIGA_PISO_3X6", name: "Pino 3x6\" (Piso Estructural)", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "MAD_VIGA_PISO_3X6", name: "Pino 3x6\" (Piso Estructural)", unit: "ML", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VINC_PISO_2X3", name: "Madera pino macizo 2x3\" (Vinculante Piso)", unit: "ML", price: 4370, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_ACOMP_SOL", name: "Madera pino macizo 2x3\" (Acompana Solera)", unit: "ML", price: 4370, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_CLAV_TECHO_2X2", name: "Madera pino macizo 2x2\" (Clavadera Techo)", unit: "ML", price: 4350, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
@@ -55,5 +55,5 @@ export const INITIAL_PRICES: Product[] = [
     { id: "MEMB_AUTO", name: "Membrana Asfaltica autoadhesiva 15cm x 25mts", unit: "UNID", price: 51250, category: "4. AISLACION Y SELLADO QUIMICO" },
     { id: "CHAPA_C27", name: "Chapa galvanizada acanalada C27", unit: "UNID", price: 17250, category: "4. AISLACION Y SELLADO QUIMICO" },
     // --- 5. SERVICIOS Y EXTRAS ---
-    { id: "INGENIERIA_DETALLE", name: "Ingenieria de detalle", unit: "UNID", price: 6000, category: "5. SERVICIOS Y EXTRAS" }
+    { id: "INGENIERIA_DETALLE", name: "Ingenieria de detalle", unit: "M2", price: 6000, category: "5. SERVICIOS Y EXTRAS" }
 ];

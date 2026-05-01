@@ -333,6 +333,7 @@ export const useStore = create<StoreState>()(
         includeRoof: true,
         includeFloor: true,
         includeEngineeringDetail: true,
+        interiorWallHeightMode: 'roof',
       },
       foundationType: 'platea',
       structureType: 'madera',
@@ -772,7 +773,7 @@ export const useStore = create<StoreState>()(
           Oeste: { type: 'recto', hBase: 2.44, hMax: 2.44 }
         },
         perimeterWalls: [{ id: 'Norte', side: 'Norte' }, { id: 'Sur', side: 'Sur' }, { id: 'Este', side: 'Este' }, { id: 'Oeste', side: 'Oeste' }],
-        interiorWalls: [], activeId: null, activeType: null, activeOpeningId: null, activeRecessId: null, openings: [], showBeams: true, showRoofPlates: true, beamOffset: 0, selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true }, foundationType: 'platea', structureType: 'madera', project: { budgetNumber: `LFP-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`, status: 'Borrador', clientName: '', cuit: '', phone: '', email: '', location: '', date: new Date().toISOString().split('T')[0], projectInfo: { benefits: '', extraNotes: '', adjustmentPercentage: 0, showEarlyPaymentDiscount: true }, recesses: [], overrides: {}, perimeterVisibility: { Norte: true, Sur: true, Este: true, Oeste: true } }, snapshots: [], customMeasurements: [], rooms: []
+        interiorWalls: [], activeId: null, activeType: null, activeOpeningId: null, activeRecessId: null, openings: [], showBeams: true, showRoofPlates: true, beamOffset: 0, selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true, interiorWallHeightMode: "roof" }, foundationType: 'platea', structureType: 'madera', project: { budgetNumber: `LFP-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`, status: 'Borrador', clientName: '', cuit: '', phone: '', email: '', location: '', date: new Date().toISOString().split('T')[0], projectInfo: { benefits: '', extraNotes: '', adjustmentPercentage: 0, showEarlyPaymentDiscount: true }, recesses: [], overrides: {}, perimeterVisibility: { Norte: true, Sur: true, Este: true, Oeste: true } }, snapshots: [], customMeasurements: [], rooms: []
       })
     }),
     {
@@ -785,7 +786,7 @@ export const useStore = create<StoreState>()(
           perimeterWalls: [{ id: 'Norte', side: 'Norte' }, { id: 'Sur', side: 'Sur' }, { id: 'Este', side: 'Este' }, { id: 'Oeste', side: 'Oeste' }],
           interiorWalls: [], openings: [],
           facadeConfigs: { Norte: { type: '2-aguas', hBase: 2.44, hMax: 3.5 }, Sur: { type: '2-aguas', hBase: 2.44, hMax: 3.5 }, Este: { type: 'recto', hBase: 2.44, hMax: 2.44 }, Oeste: { type: 'recto', hBase: 2.44, hMax: 2.44 } },
-          selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true },
+          selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true, interiorWallHeightMode: "roof" },
           prices: INITIAL_PRICES, foundationType: 'platea', structureType: 'madera', snapshots: [], crmEntries: [], activeId: null, activeType: null, showBeams: true, showRoofPlates: true, beamOffset: 0, defaults: {
             benefits: '• Compromiso de Eficiencia: 6% de descuento por cierre temprano (7 días).\n• Escalabilidad: 8% de descuento en compras > 20 unidades.\n• Optimización: 12% de beneficio por pago en efectivo.\n• Acompañamiento: Asesoría técnica y manuales paso a paso.',
             extraNotes: '• Validez: 7 días corridos.\n• Precios Netos: No incluyen IVA.\n• Reserva: Descuentos válidos según vigencia.\n• Logística: No incluye envío ni descarga.'

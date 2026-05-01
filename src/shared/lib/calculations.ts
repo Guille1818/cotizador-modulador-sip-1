@@ -50,7 +50,8 @@ export const calculateGeometry = (
   let areaFachadasTotal = 0;
   let cantMurosExtTotal = 0;
   let maxH = 2.44;
-  let minBaseH = 2.44;
+  // Inicializar con Infinity para que el primer hBase real siempre actualice el valor
+  let minBaseH = Infinity;
 
   Object.entries(facadeConfigs).forEach(([side, config]) => {
     const facadeSide = side as FacadeSide;
@@ -85,21 +86,31 @@ export const calculateGeometry = (
       return acc + ((ow + oh) * 2);
     }, 0);
 
-    const sidePanels = Math.ceil(sideArea / (PANEL_WIDTH * PANEL_HEIGHT));
+    // Área de aberturas de esta fachada (puertas + ventanas)
+    const sideOpeningsArea = sideOpenings.reduce((acc, o) => {
+      const ow = Number(o.width) || (o.type === 'door' ? 0.9 : 1.2);
+      const oh = Number(o.height) || (o.type === 'door' ? 2.1 : 1.2);
+      return acc + (ow * oh);
+    }, 0);
 
-    areaFachadasTotal += sideArea;
-    cantMurosExtTotal += sidePanels;
+    // Área neta = área bruta de fachada menos los vanos
+    const sideNetArea = Math.max(0, sideArea - sideOpeningsArea);
+    const sidePanels = Math.ceil(sideNetArea / (PANEL_WIDTH * PANEL_HEIGHT));
+
+    areaFachadasTotal += sideArea; // total bruto se mantiene para info
+    cantMurosExtTotal += sidePanels; // conteo de paneles sobre área neta
 
     sides[side] = {
-      area: sideArea,
-      panels: sidePanels,
+      area: sideArea,       // área bruta (para mostrar en reporte)
+      panels: sidePanels,   // paneles calculados sobre área neta
       openingML: sideOpeningsML,
       perimPanels: sidePanels * 7.32,
       isVisible: true,
     };
   });
 
-  // 3. Recesses (kept for perimeter and piso, but wall area is now facade-based as per user)
+  // Fallback: si no hay fachadas configuradas, usar altura estándar de panel
+  if (minBaseH === Infinity) minBaseH = 2.44;
   let recessPisoArea = 0;
   let extraLineal = 0;
 
@@ -172,8 +183,11 @@ export const calculateGeometry = (
   const isSandwichRoof = selections.roofSystem === 'sandwich';
   const roofPanelWidth = isSandwichRoof ? 1.0 : PANEL_WIDTH;
 
-  // Interior walls height = min(2.44, minBaseH)
-  const intHeight = Math.min(2.44, minBaseH);
+  // Altura de muros interiores según modo elegido:
+  // 'roof'  → llegan hasta el techo real (minBaseH)  — sin cielorraso
+  // 'panel' → se limitan a 2.44m (altura estándar de panel) — para cielorraso suspendido plano
+  const interiorWallHeightMode = selections.interiorWallHeightMode ?? 'roof';
+  const intHeight = interiorWallHeightMode === 'panel' ? Math.min(2.44, minBaseH) : minBaseH;
 
   // Filter by inclusions
   const incExt = selections.includeExterior !== false;
@@ -306,9 +320,17 @@ export const calculateQuantities = (
   // Flejes techo 2x1/2: paneles_techo_conv * 3.25 (ONLY techo conv)
   quantities['FLEJES_TECHO'] = Math.round(paneles_techo_conv * 3.25);
 
-  // Vigas piso 3x6: keep existing logic
+  // Vigas piso 3x6: metros lineales totales para cubrir el piso
+  // Separación entre vigas = 60cm. Las vigas corren en la dirección del lado corto (width).
+  // Cantidad de corridas = ceil(length / 0.6) + 1 (incluyendo borde inicial).
+  // Cada corrida tiene largo = width metros.
+  // Las piezas se pueden empalmar con herrajes, por eso el resultado se da en ML.
   if (includeFloor && (structureType === 'madera' || structureType === 'metal')) {
-    quantities['MAD_VIGA_PISO_3X6'] = Math.ceil(areaPiso * 2.5 * 1.1);
+    const joistsSpacing = 0.6;
+    const { width = 6, length = 8 } = dimensions;
+    const runs = Math.ceil(length / joistsSpacing) + 1;
+    const mlTotal = Math.ceil(runs * width * 1.1); // 10% desperdicio/empalmes
+    quantities['MAD_VIGA_PISO_3X6'] = mlTotal;
   } else {
     quantities['MAD_VIGA_PISO_3X6'] = 0;
   }

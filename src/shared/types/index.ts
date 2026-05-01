@@ -102,6 +102,8 @@ export interface Selections {
   includeRoof: boolean;
   includeFloor: boolean;
   includeEngineeringDetail: boolean;
+  /** 'roof' = tabiques llegan al techo (altura real). 'panel' = tabiques a 2.44m (cielorraso suspendido) */
+  interiorWallHeightMode: 'roof' | 'panel';
 }
 
 export type FoundationType = 'platea' | 'estructura';

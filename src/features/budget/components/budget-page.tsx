@@ -18,11 +18,18 @@ const BudgetPage = () => {
         dimensions, selections, interiorWalls, perimeterWalls, openings, facadeConfigs,
         prices, project, setProjectData, updateProjectInfo,
         setOverride, removeOverride, foundationType, structureType, defaults,
-        setSelections, setSelectionId, setRoofSystem, saveToCRM
+        setSelections, setSelectionId, setRoofSystem, saveToCRM, generateBudgetNumber
     } = useStore();
 
     const [isSaved, setIsSaved] = React.useState(false);
     const router = useRouter();
+
+    // Auto-generar número de presupuesto si está vacío (ej: después de resetProject)
+    React.useEffect(() => {
+        if (!project.budgetNumber) {
+            generateBudgetNumber();
+        }
+    }, [project.budgetNumber, generateBudgetNumber]);
 
     // Sync defaults if missing (same logic as in Engineering to ensure consistency)
     React.useEffect(() => {
@@ -36,6 +43,7 @@ const BudgetPage = () => {
             includeRoof: true,
             includeFloor: true,
             includeEngineeringDetail: true,
+            interiorWallHeightMode: 'roof',
         };
         const missing: Record<string, unknown> = {};
         let needsSync = false;
@@ -319,6 +327,34 @@ const BudgetPage = () => {
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-left">Seleccion de tipologias constructivas</p>
                     </div>
                 </div>
+
+                {/* Altura de muros interiores (tabiques) */}
+                {selections.includeInterior !== false && (
+                    <div className="mb-6 bg-indigo-50/60 border border-indigo-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Altura de Muros Interiores (Tabiques)</p>
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                                {(selections.interiorWallHeightMode ?? 'roof') === 'roof'
+                                    ? `Hasta el techo — altura real de la envolvente (${geo.areaPiso > 0 ? 'coincide con hBase de fachada' : 'según fachada'})`
+                                    : 'Limitados a 2.44m — para cielorraso suspendido plano'}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 min-w-[260px]">
+                            <button
+                                onClick={() => setSelections({ interiorWallHeightMode: 'roof' })}
+                                className={`py-2.5 rounded-xl text-[9px] font-black border-2 transition-all ${(selections.interiorWallHeightMode ?? 'roof') === 'roof' ? 'bg-white border-indigo-500 text-indigo-700 shadow-sm' : 'bg-transparent border-slate-200 text-slate-400'}`}
+                            >
+                                HASTA EL TECHO
+                            </button>
+                            <button
+                                onClick={() => setSelections({ interiorWallHeightMode: 'panel' })}
+                                className={`py-2.5 rounded-xl text-[9px] font-black border-2 transition-all ${selections.interiorWallHeightMode === 'panel' ? 'bg-white border-indigo-500 text-indigo-700 shadow-sm' : 'bg-transparent border-slate-200 text-slate-400'}`}
+                            >
+                                2.44m (CIELORRASO)
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                     {[
