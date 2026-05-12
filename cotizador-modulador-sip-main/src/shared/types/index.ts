@@ -102,6 +102,7 @@ export interface Selections {
   includeRoof: boolean;
   includeFloor: boolean;
   includeEngineeringDetail: boolean;
+  interiorWallsHeight?: 'roof' | 'panel';
 }
 
 export type FoundationType = 'platea' | 'estructura';

@@ -246,7 +246,9 @@ export const calculateQuantities = (
   prices: Product[],
   dimensions: Partial<Dimensions> = {},
   foundationType: string = 'platea',
-  structureType: string = 'madera'
+  structureType: string = 'madera',
+  interiorWalls: InteriorWall[] = [],
+  facadeConfigs: FacadeConfigs = {}
 ): Quantities => {
   const { areaPiso, areaTecho, cantMurosExt, cantMurosInt, cantPiso, cantTecho, perimExt } = geo;
 
@@ -273,6 +275,71 @@ export const calculateQuantities = (
   const floorMainBeams = includeFloor ? Math.ceil(maxSide / 3.0) + 1 : 0;
   const floorBeamIntersections = includeFloor ? floorSecondaryBeams * floorMainBeams : 0;
 
+  const interiorWallsHeightMode = selections.interiorWallsHeight || 'panel';
+
+  const facadeList = Object.entries(facadeConfigs).map(([side, config]) => {
+    const facadeSide = side as FacadeSide;
+    const isFB = facadeSide === 'Norte' || facadeSide === 'Sur';
+    const facadeLength = isFB ? width : length;
+    const hBase = config?.hBase ?? PANEL_HEIGHT;
+    const hMax = config?.hMax ?? hBase;
+    return { facadeSide, facadeLength, hBase, hMax };
+  });
+
+  const defaultFacadeHBase = facadeList.length
+    ? Math.min(...facadeList.map(f => f.hBase))
+    : PANEL_HEIGHT;
+
+  const exteriorMontantesML = facadeList.reduce((acc, facade) => {
+    if (facade.facadeLength <= 0) return acc;
+    const montantesCount = Math.ceil(facade.facadeLength / PANEL_WIDTH) + 1;
+    const heightsSum = Array.from({ length: montantesCount }, (_, index) => {
+      const x = Math.min(index * PANEL_WIDTH, facade.facadeLength);
+      return facade.hBase + ((facade.hMax - facade.hBase) * (x / facade.facadeLength));
+    }).reduce((sum, h) => sum + h, 0);
+    return acc + heightsSum;
+  }, 0);
+
+  const wallLength = (wall: InteriorWall): number => {
+    if (wall.length !== undefined) return Number(wall.length) || 0;
+    if (wall.x1 !== undefined && wall.x2 !== undefined && wall.y1 !== undefined && wall.y2 !== undefined) {
+      const dx = (wall.x2 as number) - (wall.x1 as number);
+      const dy = (wall.y2 as number) - (wall.y1 as number);
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    return 0;
+  };
+
+  const nearestFacadeHBase = (wall: InteriorWall): number => {
+    if (interiorWallsHeightMode !== 'roof') return PANEL_HEIGHT;
+    if (facadeList.length === 0) return defaultFacadeHBase;
+    if (wall.x1 !== undefined && wall.y1 !== undefined && wall.x2 !== undefined && wall.y2 !== undefined) {
+      const midX = ((wall.x1 as number) + (wall.x2 as number)) / 2;
+      const midY = ((wall.y1 as number) + (wall.y2 as number)) / 2;
+      return facadeList.reduce((best, facade) => {
+        const dist = facade.facadeSide === 'Norte'
+          ? midY
+          : facade.facadeSide === 'Sur'
+            ? Math.abs(length - midY)
+            : facade.facadeSide === 'Este'
+              ? Math.abs(width - midX)
+              : midX;
+        const bestDist = best.dist;
+        return dist < bestDist ? { facade, dist } : best;
+      }, { facade: facadeList[0], dist: Infinity }).facade.hBase;
+    }
+    return defaultFacadeHBase;
+  };
+
+  const interiorMontantesML = interiorWalls.reduce((acc, wall) => {
+    const lengthWall = wallLength(wall);
+    if (lengthWall <= 0) return acc;
+    const montantesCount = Math.ceil(lengthWall / PANEL_WIDTH) + 1;
+    const height = interiorWallsHeightMode === 'roof' ? nearestFacadeHBase(wall) : PANEL_HEIGHT;
+    return acc + montantesCount * height;
+  }, 0);
+
+  const numVigasTecho = Math.ceil(width / 1.22) + 1;
   const paneles_techo_conv = (includeRoof && !isSandwich) ? cantTecho : 0;
   const paneles_techo_sandwich = (includeRoof && isSandwich) ? cantTecho : 0;
   const total_paneles = paneles_muros + paneles_piso + (includeRoof ? cantTecho : 0);
@@ -280,9 +347,9 @@ export const calculateQuantities = (
   const hbs140SoleraPiso = includeFloor ? Math.ceil(perimExt / 0.4) : 0;
   const hbs140SoleraMadera = includeFloor && structureType === 'madera' ? Math.ceil(perimExt / 0.8) : 0;
   const telHex4SoleraMetal = includeFloor && structureType === 'metal' ? Math.ceil(perimExt / 0.8) : 0;
-  const hbs160Floor = includeFloor ? Math.ceil(areaPiso * 2.5) : 0;
-  const hbs160Roof = includeRoof && !isSandwich ? Math.ceil(areaTecho * 2.1) : 0;
-  const hbs200Entre = includeFloor ? floorBeamIntersections * 2 : 0;
+  const hbs160Floor = includeFloor ? floorSecondaryBeams * Math.ceil(maxSide / 0.4) : 0;
+  const hbs160Roof = includeRoof && !isSandwich ? numVigasTecho * Math.ceil(length / 0.4) : 0;
+  const hbs200Entre = includeFloor ? floorSecondaryBeams * 2 : 0;
   const herrajes = includeFloor ? floorBeamIntersections * 2 : 0;
 
   // --- 1. SISTEMA DE PANELES ---
@@ -315,8 +382,8 @@ export const calculateQuantities = (
 
   // --- 2. MADERAS ESTRUCTURALES ---
 
-  // Vinculantes muros 2x3: paneles_muros * 7
-  quantities['MAD_VINC_2X3'] = Math.round(paneles_muros * 7);
+  // Vinculantes muros 2x3:  montantes exteriores + montantes interiores
+  quantities['MAD_VINC_2X3'] = Math.round(exteriorMontantesML + interiorMontantesML);
 
   // Vinculantes piso 2x3: paneles_piso * 5 (only if includeFloor)
   quantities['MAD_VINC_PISO_2X3'] = includeFloor ? Math.round(paneles_piso * 5) : 0;
@@ -324,8 +391,18 @@ export const calculateQuantities = (
   // Solera 1x4: paneles_muros * 1
   quantities['MAD_SOL_BASE'] = Math.round(paneles_muros * 1);
 
-  // Acompana solera 2x3: paneles_muros * 1
-  quantities['MAD_ACOMP_SOL'] = Math.round(paneles_muros * 1);
+  // Acompana solera 2x3: solo muros con altura superior a 2.44m o 2.40m según tipo
+  const isCementicio = /\bCE(?:-|$)|CEM(?:ENTICIO)?/i.test(selections.exteriorWallId || '');
+  const soleraDobleThreshold = isCementicio ? 2.40 : 2.44;
+  const exteriorSoleraDobleML = Object.entries(facadeConfigs).reduce((acc, [side, config]) => {
+    const facadeSide = side as FacadeSide;
+    const isVisible = geo.sides?.[side]?.isVisible ?? true;
+    if (!isVisible || !config) return acc;
+    const hMax = config.hMax ?? config.hBase ?? PANEL_HEIGHT;
+    const facadeLength = facadeSide === 'Norte' || facadeSide === 'Sur' ? width : length;
+    return acc + (hMax > soleraDobleThreshold ? facadeLength : 0);
+  }, 0);
+  quantities['MAD_ACOMP_SOL'] = Math.round(exteriorSoleraDobleML);
 
   // Vigas techo 3x6: paneles_techo_conv * 3.5 (ONLY techo conv)
   quantities['MAD_VIGA_TECHO_3X6'] = Math.round(paneles_techo_conv * 3.5);
@@ -348,26 +425,38 @@ export const calculateQuantities = (
 
   // --- 3. TORNILLOS ---
 
-  // Fix 6x1.5: panel a montante (vinculante)
-  quantities['FIX_6X1_5'] = Math.round(paneles_muros * 55);
+  // Fix 6x1.5: panel a montante (vinculante) - ceil(altura / 0.20) * 2 por montante
+  const alturaMontante = 2.44;
+  const totalMLVinculantes = paneles_muros * 7;
+  const totalMontantes = totalMLVinculantes / alturaMontante;
+  const tornillosPorMontante = Math.ceil(alturaMontante / 0.20) * 2;
+  quantities['FIX_6X1_5'] = Math.round(totalMontantes * tornillosPorMontante);
 
   // Fix 6x2: paneles_muros * 3
   quantities['FIX_6X2'] = Math.round(paneles_muros * 3);
 
   // HBS 140mm: encuentros SIP-SIP y soleras sobre piso.
-  quantities['HBS_140'] = Math.round(paneles_muros * 5 + hbs140SoleraPiso + hbs140SoleraMadera);
+  const alturaEncuentro = 2.44;
+  const tornillosPorEncuentro = Math.ceil(alturaEncuentro / 0.30);
+  const numEncuentros = Math.round(perimExt / 3); // aproximación
+  quantities['HBS_140'] = Math.round(numEncuentros * tornillosPorEncuentro + hbs140SoleraPiso + hbs140SoleraMadera);
 
   // Hex 14x3: paneles_techo_conv * 28 (ONLY techo conv)
   quantities['TORN_HEX_3'] = Math.round(paneles_techo_conv * 28);
 
-  // Hex 14x5: paneles_techo_sandwich * 5.5 (ONLY techo sandwich)
-  quantities['HEX_T2_14X5'] = Math.round(paneles_techo_sandwich * 5.5);
+  // Hex 14x5: paneles_techo_sandwich * 5.5 (ONLY techo sandwich) - 1 cada 0.40m por viga
+  const tornillosPorVigaSandwich = Math.ceil(length / 0.4);
+  quantities['HEX_T2_14X5'] = Math.round(numVigasTecho * tornillosPorVigaSandwich);
 
   // Fix 6x1: paneles_techo_conv * 11 (ONLY techo conv)
   quantities['FIX_6X1'] = Math.round(paneles_techo_conv * 11);
 
-  // Fix 8x3: paneles_muros * 8 + paneles_techo_conv * 10
-  quantities['FIX_8X3'] = Math.round(paneles_muros * 8 + paneles_techo_conv * 10);
+  // Fix 8x3: clavaderas a muro y techo - 1 por cruce, cruces cada 0.60m
+  const lineasClavaderasMuro = Math.round(2.44 / 1.0); // ~2 líneas por muro
+  const totalTornillosMuro = lineasClavaderasMuro * Math.ceil(perimExt / 0.6);
+  const lineasClavaderasTecho = Math.round(length / 1.0);
+  const totalTornillosTecho = lineasClavaderasTecho * Math.ceil(width / 0.6);
+  quantities['FIX_8X3'] = totalTornillosMuro + totalTornillosTecho;
 
   // HBS 160mm: panel piso y panel techo SIP a vigas
   quantities['HBS_160'] = hbs160Floor + hbs160Roof;
@@ -461,7 +550,8 @@ export const fullCalculation = (
     } as Partial<Project> & { foundationType?: string },
     safeSelections
   );
-  const q = calculateQuantities(geo, safeSelections, actualOpenings.length, prices, dimensions, foundationType, structureType);
+  const actualInteriorWalls = Array.isArray(interiorWalls) ? interiorWalls : [];
+  const q = calculateQuantities(geo, safeSelections, actualOpenings.length, prices, dimensions, foundationType, structureType, actualInteriorWalls, facadeConfigs || {});
 
   // Safety check for NaN values in geo and quantities
   [geo as unknown as Record<string, unknown>, q as unknown as Record<string, unknown>].forEach(obj => {

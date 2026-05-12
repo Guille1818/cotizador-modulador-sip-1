@@ -333,6 +333,7 @@ export const useStore = create<StoreState>()(
         includeRoof: true,
         includeFloor: true,
         includeEngineeringDetail: true,
+        interiorWallsHeight: 'panel',
       },
       foundationType: 'platea',
       structureType: 'madera',
