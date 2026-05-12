@@ -404,6 +404,17 @@ export const calculateQuantities = (
   }, 0);
   quantities['MAD_ACOMP_SOL'] = Math.round(exteriorSoleraDobleML);
 
+  // Solera superior de cierre: suma de largos de TODOS los muros sin descontar vanos
+  const fachadasExterioresML = Object.entries(facadeConfigs).reduce((acc, [side, config]) => {
+    const facadeSide = side as FacadeSide;
+    const isVisible = geo.sides?.[side]?.isVisible ?? true;
+    if (!isVisible || !config) return acc;
+    const facadeLength = facadeSide === 'Norte' || facadeSide === 'Sur' ? width : length;
+    return acc + facadeLength;
+  }, 0);
+  const murosInterioresML = interiorWalls.reduce((acc, wall) => acc + wallLength(wall), 0);
+  quantities['MAD_SOL_CIERRE'] = Math.round(fachadasExterioresML + murosInterioresML);
+
   // Vigas techo 3x6: paneles_techo_conv * 3.5 (ONLY techo conv)
   quantities['MAD_VIGA_TECHO_3X6'] = Math.round(paneles_techo_conv * 3.5);
 
