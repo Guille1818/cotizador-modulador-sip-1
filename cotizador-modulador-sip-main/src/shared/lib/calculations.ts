@@ -275,6 +275,11 @@ export const calculateQuantities = (
   const floorMainBeams = includeFloor ? Math.ceil(maxSide / 3.0) + 1 : 0;
   const floorBeamIntersections = includeFloor ? floorSecondaryBeams * floorMainBeams : 0;
 
+  const floorVincShortCount = includeFloor ? Math.ceil(minSide / 1.22) + 1 : 0;
+  const floorVincLongCount = includeFloor ? Math.ceil(maxSide / 2.44) + 1 : 0;
+  const floorVincShortML = floorVincShortCount * maxSide;
+  const floorVincLongML = floorVincLongCount * minSide;
+
   const interiorWallsHeightMode = selections.interiorWallsHeight || 'panel';
 
   const facadeList = Object.entries(facadeConfigs).map(([side, config]) => {
@@ -421,8 +426,10 @@ export const calculateQuantities = (
   // Vinculantes muros 2x3:  montantes exteriores + montantes interiores
   quantities['MAD_VINC_2X3'] = Math.round(exteriorMontantesML + interiorMontantesML);
 
-  // Vinculantes piso 2x3: paneles_piso * 5 (only if includeFloor)
-  quantities['MAD_VINC_PISO_2X3'] = includeFloor ? Math.round(paneles_piso * 5) : 0;
+  // Vinculantes piso 2x3: piso corto + piso largo (solo si hay piso)
+  quantities['MAD_VINC_PISO_2X3'] = includeFloor
+    ? Math.round(floorVincShortML + floorVincLongML)
+    : 0;
 
   // Solera 1x4: paneles_muros * 1
   quantities['MAD_SOL_BASE'] = Math.round(paneles_muros * 1);
