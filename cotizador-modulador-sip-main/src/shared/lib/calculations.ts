@@ -344,6 +344,36 @@ export const calculateQuantities = (
   const paneles_techo_sandwich = (includeRoof && isSandwich) ? cantTecho : 0;
   const total_paneles = paneles_muros + paneles_piso + (includeRoof ? cantTecho : 0);
 
+  const exteriorCornerPairs: [FacadeSide, FacadeSide][] = [
+    ['Norte', 'Este'],
+    ['Este', 'Sur'],
+    ['Sur', 'Oeste'],
+    ['Oeste', 'Norte'],
+  ];
+
+  const visibleExteriorCorners = exteriorCornerPairs.reduce((count, [a, b]) => {
+    return count + ((geo.sides?.[a]?.isVisible && geo.sides?.[b]?.isVisible) ? 1 : 0);
+  }, 0);
+
+  const clavaderasMurosML = includeExt ? Object.entries(facadeConfigs).reduce((acc, [side, config]) => {
+    const facadeSide = side as FacadeSide;
+    const isVisible = geo.sides?.[side]?.isVisible ?? true;
+    if (!isVisible || !config) return acc;
+    const facadeLength = facadeSide === 'Norte' || facadeSide === 'Sur' ? width : length;
+    const wallHeight = config.hMax ?? config.hBase ?? PANEL_HEIGHT;
+    const lineasClavaderas = Math.round(wallHeight / 1.0);
+    return acc + (lineasClavaderas > 0 ? lineasClavaderas * facadeLength : 0);
+  }, 0) : 0;
+
+  const perimetroAberturasML = includeExt ? (geo.perimAberturas || 0) : 0;
+  const clavaderasEsquinasML = visibleExteriorCorners * 2;
+  const totalClavaderasMurosML = Math.round(clavaderasMurosML + perimetroAberturasML + clavaderasEsquinasML);
+
+  const lineasClavaderasTechoConv = Math.round(Math.min(width, length) / 1.0);
+  const clavaderasTechoML = includeRoof && !isSandwich
+    ? lineasClavaderasTechoConv * Math.max(width, length)
+    : 0;
+
   const hbs140SoleraPiso = includeFloor ? Math.ceil(perimExt / 0.4) : 0;
   const hbs140SoleraMadera = includeFloor && structureType === 'madera' ? Math.ceil(perimExt / 0.8) : 0;
   const telHex4SoleraMetal = includeFloor && structureType === 'metal' ? Math.ceil(perimExt / 0.8) : 0;
@@ -423,11 +453,11 @@ export const calculateQuantities = (
     : Math.ceil(ladoLargo / 1.22) + 1;
   quantities['MAD_VIGA_TECHO'] = Math.round(cantidadVigasTecho * ladoCorto);
 
-  // Clavaderas muros 2x2: paneles_muros * 3.5
-  quantities['MAD_CLAV_2X2'] = Math.round(paneles_muros * 3.5);
+  // Clavaderas muros 2x2: fachada por fachada + aberturas + esquinas
+  quantities['MAD_CLAV_2X2'] = totalClavaderasMurosML;
 
-  // Clavaderas techo 2x2: paneles_techo_conv * 4 (ONLY techo conv)
-  quantities['MAD_CLAV_TECHO_2X2'] = Math.round(paneles_techo_conv * 4);
+  // Clavaderas techo 2x2: líneas perpendiculares a la caída, solo techo conv
+  quantities['MAD_CLAV_TECHO_2X2'] = Math.round(clavaderasTechoML);
 
   // Flejes techo 2x1/2: paneles_techo_conv * 3.25 (ONLY techo conv)
   quantities['FLEJES_TECHO'] = Math.round(paneles_techo_conv * 3.25);

@@ -579,6 +579,34 @@ describe('Tornillos y fijaciones', () => {
     expect(q['FIX_8X3']).toBe(244); // ← FALLA: código produce 234
   });
 
+  it('MAD_CLAV_2X2 muros 6×4 h=2.44 sin aberturas = 28 ml', () => {
+    const selections = { ...ALL_INCLUDED, includeFloor: false };
+    const geo = calculateGeometry(
+      { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 },
+      [],
+      rectoFacades(2.44),
+      [],
+      { foundationType: 'platea' },
+      selections,
+    );
+    const q = calculateQuantities(geo, selections, 0, [], { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 }, 'platea', 'madera');
+    expect(q['MAD_CLAV_2X2']).toBe(28);
+  });
+
+  it('MAD_CLAV_TECHO_2X2 techo conv 6×4 = 24 ml', () => {
+    const selections = { ...ALL_INCLUDED, includeFloor: false };
+    const geo = calculateGeometry(
+      { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 },
+      [],
+      rectoFacades(2.44),
+      [],
+      { foundationType: 'platea' },
+      selections,
+    );
+    const q = calculateQuantities(geo, selections, 0, [], { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 }, 'platea', 'madera');
+    expect(q['MAD_CLAV_TECHO_2X2']).toBe(24);
+  });
+
   it('Varilla roscada 1/2" con platea: 7 varillas para 25 perforaciones', () => {
     // VARILLA_12 solo se incluye cuando foundationType='platea' (no hay piso SIP)
     // Perímetro exterior = 20m → perforaciones = ceil(20 / 0.8) = 25

@@ -17,8 +17,8 @@
 //   MAD_SOL_BASE = paneles_muros * 1
 //   MAD_ACOMP_SOL = paneles_muros * 1
 //   MAD_VIGA_TECHO = cantidadVigasTecho * ladoCorto
-//   MAD_CLAV_2X2 = paneles_muros * 3.5
-//   MAD_CLAV_TECHO_2X2 = paneles_techo_conv * 4
+//   MAD_CLAV_2X2 = sum(round(alto_muro / 1m) × largo_muro) + perim. aberturas + 2m × esquinas
+//   MAD_CLAV_TECHO_2X2 = round(lado corto / 1m) × lado largo (solo techo conv)
 //   FLEJES_TECHO = paneles_techo_conv * 3.25
 //
 // TORNILLOS:
