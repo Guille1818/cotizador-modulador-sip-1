@@ -39,7 +39,7 @@ const AdminPage = () => {
         'MAD_VINC_PISO_2X3': 'Paneles Piso * 5 (solo si incluye piso)',
         'MAD_SOL_BASE': 'Paneles Muros * 1',
         'MAD_ACOMP_SOL': 'Paneles Muros * 1',
-        'MAD_VIGA_TECHO_3X6': 'Paneles Techo Conv * 3.5 (solo techo conv)',
+        'MAD_VIGA_TECHO': 'Cantidad Vigas × Lado Corto (SIP/ Sandwich)',
         'MAD_CLAV_2X2': 'Paneles Muros * 3.5',
         'MAD_CLAV_TECHO_2X2': 'Paneles Techo Conv * 4 (solo techo conv)',
         'FLEJES_TECHO': 'Paneles Techo Conv * 3.25 (solo techo conv)',

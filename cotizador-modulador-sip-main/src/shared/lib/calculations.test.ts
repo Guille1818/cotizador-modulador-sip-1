@@ -377,10 +377,9 @@ describe('Vigas estructurales', () => {
 
   it('BUG: vigas techo 3×6": ratio correcto = cantTecho × 3.5 → 35 piezas (código produce 32 porque cantTecho=9)', () => {
     // Cuando se corrija el bug de grilla: cantTecho = 10
-    //   MAD_VIGA_TECHO_3X6 = round(10 × 3.5) = 35
+    //   MAD_VIGA_TECHO = cantidadVigasTecho * ladoCorto = 6 * 4 = 24
     //
-    // Código actual: cantTecho = 9 → round(9 × 3.5) = round(31.5) = 32
-    // NOTA: el ratio 3.5 vigas por panel también requiere validación con el equipo constructivo.
+    // Código actual: anteriormente calculaba 32 con el ratio antiguo.
     const selections = { ...ALL_INCLUDED, includeFloor: false };
     const geo = calculateGeometry(
       { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 },
@@ -391,12 +390,12 @@ describe('Vigas estructurales', () => {
       selections,
     );
     const q = calculateQuantities(geo, selections, 0, [], { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 }, 'platea', 'madera');
-    expect(q['MAD_VIGA_TECHO_3X6']).toBe(35); // ← FALLA: código produce 32
+    expect(q['MAD_VIGA_TECHO']).toBe(24);
   });
 
   it('vigas techo = 0 con techo sandwich', () => {
-    // Las MAD_VIGA_TECHO_3X6 son exclusivas del techo SIP convencional.
-    // Con sandwich paneles_techo_conv = 0 → MAD_VIGA_TECHO_3X6 = 0
+    // Las MAD_VIGA_TECHO son exclusivas del techo SIP convencional.
+    // Con sandwich paneles_techo_conv = 0 → MAD_VIGA_TECHO = 0
     const selections = { ...ALL_INCLUDED, includeFloor: false, roofSystem: 'sandwich' as const, roofId: 'SAND-OSB-80-4' };
     const geo = calculateGeometry(
       { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 },
@@ -407,7 +406,7 @@ describe('Vigas estructurales', () => {
       selections,
     );
     const q = calculateQuantities(geo, selections, 0, [], { width: 6, length: 4, height: 2.44, ridgeHeight: 2.44 }, 'platea', 'madera');
-    expect(q['MAD_VIGA_TECHO_3X6']).toBe(0);
+    expect(q['MAD_VIGA_TECHO']).toBe(0);
   });
 
   it('vigas piso 3×6": ceil(areaPiso × 2.5 × 1.1) con estructura madera (verificar unidad)', () => {

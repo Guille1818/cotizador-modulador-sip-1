@@ -415,8 +415,13 @@ export const calculateQuantities = (
   const murosInterioresML = interiorWalls.reduce((acc, wall) => acc + wallLength(wall), 0);
   quantities['MAD_SOL_CIERRE'] = Math.round(fachadasExterioresML + murosInterioresML);
 
-  // Vigas techo 3x6: paneles_techo_conv * 3.5 (ONLY techo conv)
-  quantities['MAD_VIGA_TECHO_3X6'] = Math.round(paneles_techo_conv * 3.5);
+  // Vigas techo: calculo de cantidad y metros lineales para sandwich y SIP conv.
+  const ladoCorto = Math.min(width, length);
+  const ladoLargo = Math.max(width, length);
+  const cantidadVigasTecho = isSandwich
+    ? Math.ceil(ladoLargo / 1.00) + 1
+    : Math.ceil(ladoLargo / 1.22) + 1;
+  quantities['MAD_VIGA_TECHO'] = Math.round(cantidadVigasTecho * ladoCorto);
 
   // Clavaderas muros 2x2: paneles_muros * 3.5
   quantities['MAD_CLAV_2X2'] = Math.round(paneles_muros * 3.5);

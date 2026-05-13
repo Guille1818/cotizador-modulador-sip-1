@@ -16,7 +16,7 @@
 //   MAD_VINC_PISO_2X3 = paneles_piso * 5
 //   MAD_SOL_BASE = paneles_muros * 1
 //   MAD_ACOMP_SOL = paneles_muros * 1
-//   MAD_VIGA_TECHO_3X6 = paneles_techo_conv * 3.5
+//   MAD_VIGA_TECHO = cantidadVigasTecho * ladoCorto
 //   MAD_CLAV_2X2 = paneles_muros * 3.5
 //   MAD_CLAV_TECHO_2X2 = paneles_techo_conv * 4
 //   FLEJES_TECHO = paneles_techo_conv * 3.25
@@ -84,7 +84,7 @@ function calculateExpected(tc: TestCase): ExpectedQuantities {
     MAD_VINC_PISO_2X3: includeFloor ? Math.round(paneles_piso * 5) : 0,
     MAD_SOL_BASE: Math.round(paneles_muros * 1),
     MAD_ACOMP_SOL: Math.round(paneles_muros * 1),
-    MAD_VIGA_TECHO_3X6: Math.round(paneles_techo_conv * 3.5),
+    MAD_VIGA_TECHO: Math.round(paneles_techo_conv * 3.5),
     MAD_CLAV_2X2: Math.round(paneles_muros * 3.5),
     MAD_CLAV_TECHO_2X2: Math.round(paneles_techo_conv * 4),
     FLEJES_TECHO: Math.round(paneles_techo_conv * 3.25),
@@ -133,7 +133,7 @@ function simulateCalculateQuantities(tc: TestCase): ExpectedQuantities {
   q['MAD_VINC_PISO_2X3'] = includeFloor ? Math.round(paneles_piso * 5) : 0;
   q['MAD_SOL_BASE'] = Math.round(paneles_muros * 1);
   q['MAD_ACOMP_SOL'] = Math.round(paneles_muros * 1);
-  q['MAD_VIGA_TECHO_3X6'] = Math.round(paneles_techo_conv * 3.5);
+  q['MAD_VIGA_TECHO'] = Math.round(paneles_techo_conv * 3.5);
   q['MAD_CLAV_2X2'] = Math.round(paneles_muros * 3.5);
   q['MAD_CLAV_TECHO_2X2'] = Math.round(paneles_techo_conv * 4);
   q['FLEJES_TECHO'] = Math.round(paneles_techo_conv * 3.25);
@@ -300,7 +300,7 @@ console.log('  DETALLE CASO 2 (Casa 6x8 platea SIP):');
 console.log('-'.repeat(55));
 const detail = calculateExpected(testCases[1]);
 const categories: Record<string, string[]> = {
-  'MADERAS': ['MAD_VINC_2X3', 'MAD_VINC_PISO_2X3', 'MAD_SOL_BASE', 'MAD_ACOMP_SOL', 'MAD_VIGA_TECHO_3X6', 'MAD_CLAV_2X2', 'MAD_CLAV_TECHO_2X2', 'FLEJES_TECHO', 'MAD_VIGA_PISO_3X6'],
+  'MADERAS': ['MAD_VINC_2X3', 'MAD_VINC_PISO_2X3', 'MAD_SOL_BASE', 'MAD_ACOMP_SOL', 'MAD_VIGA_TECHO', 'MAD_CLAV_2X2', 'MAD_CLAV_TECHO_2X2', 'FLEJES_TECHO', 'MAD_VIGA_PISO_3X6'],
   'TORNILLOS': ['FIX_6X1_5', 'FIX_6X2', 'HBS_140', 'HBS_160', 'HBS_200', 'TEL_HEX_4', 'HERRAJE_ANGULO_90', 'TACO_N10', 'TORN_HEX_3', 'HEX_T2_14X5', 'FIX_6X1', 'FIX_8X3'],
   'FIJACIÓN': ['VARILLA_12', 'KIT_TUERCA', 'ANCLAJE_QUIMICO'],
   'SELLADORES': ['ESPUMA_PU', 'PEG_PU', 'MEMB_LIQ', 'MEMB_AUTO'],

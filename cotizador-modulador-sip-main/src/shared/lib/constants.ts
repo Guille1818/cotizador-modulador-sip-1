@@ -27,7 +27,7 @@ export const INITIAL_PRICES: Product[] = [
     { id: "MAD_VINC_2X3", name: "Madera pino macizo 2x3\"", unit: "ML", price: 4370, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_CLAV_2X2", name: "Madera pino macizo 2x2\"", unit: "ML", price: 4350, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_SOL_BASE", name: "Madera pino macizo 1x4\"", unit: "ML", price: 1830, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
-    { id: "MAD_VIGA_TECHO_3X6", name: "Madera pino macizo G1 3x6x4.88 Mts", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
+    { id: "MAD_VIGA_TECHO", name: "Madera pino macizo G1 3x6x4.88 Mts", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_TECHO_VIC", name: "Madera pino macizo victoria 3x6x4.27Mts", unit: "UNID", price: 12544, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_MULTI", name: "Madera pino multilaminada 3x6Mts", unit: "UNID", price: 20750, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
     { id: "MAD_VIGA_PISO_3X6", name: "Pino 3x6\" (Piso Estructural)", unit: "UNID", price: 8206, category: "2. MADERAS ESTRUCTURALES (PINO TRATADO)" },
