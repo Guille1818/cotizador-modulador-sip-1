@@ -387,11 +387,16 @@ export const calculateQuantities = (
 
   const hbs140SoleraPiso = includeFloor ? Math.ceil(perimExt / 0.4) : 0;
   const hbs140SoleraMadera = includeFloor && structureType === 'madera' ? Math.ceil(perimExt / 0.8) : 0;
-  const telHex4SoleraMetal = includeFloor && structureType === 'metal' ? Math.ceil(perimExt / 0.8) : 0;
+  const cantidadVigasPiso = includeFloor ? Math.ceil(minSide / 0.61) + 1 : 0;
+  const cantidadVigasPrincipales = includeFloor ? Math.ceil(maxSide / 3.0) + 1 : 0;
+  const cantidadVigasSecundarias = includeFloor ? Math.ceil(minSide / 0.61) + 1 : 0;
+  const telHex4SoleraMetal = includeFloor && structureType === 'metal' ? Math.ceil(paneles_muros / 0.4) : 0;
   const hbs160Floor = includeFloor ? floorSecondaryBeams * Math.ceil(maxSide / 0.4) : 0;
   const hbs160Roof = includeRoof && !isSandwich ? numVigasTecho * Math.ceil(length / 0.4) : 0;
-  const hbs200Entre = includeFloor ? floorSecondaryBeams * 2 : 0;
-  const herrajes = includeFloor ? floorBeamIntersections * 2 : 0;
+  const hbs200Entre = includeFloor ? cantidadVigasPiso * 2 : 0;
+  const herrajes = includeFloor && (structureType === 'madera' || structureType === 'metal')
+    ? cantidadVigasPrincipales * cantidadVigasSecundarias * 2
+    : 0;
 
   // --- 1. SISTEMA DE PANELES ---
 
@@ -525,15 +530,18 @@ export const calculateQuantities = (
   quantities['HBS_160'] = hbs160Floor + hbs160Roof;
 
   // HBS 200mm: vigas entrepiso a muro (apoyo)
-  quantities['HBS_200'] = hbs200Entre;
+  quantities['HBS_200'] = includeFloor ? hbs200Entre : 0;
 
   // Tel Hex 4" solera sobre estructura metálica
-  quantities['TEL_HEX_4'] = telHex4SoleraMetal;
+  quantities['TEL_HEX_4'] = includeFloor && structureType === 'metal' ? telHex4SoleraMetal : 0;
 
   // Herraje ángulo 90°: intersección viga principal × secundaria
-  quantities['HERRAJE_ANGULO_90'] = herrajes;
+  quantities['HERRAJE_ANGULO_90'] = includeFloor && (structureType === 'madera' || structureType === 'metal')
+    ? herrajes
+    : 0;
 
   // Taco N10: encuentros SIP-mampostería
+  // TODO: calcular según encuentros SIP-mampostería; ahora siempre 0
   quantities['TACO_N10'] = 0;
 
   // --- 4. FIJACION A PLATEA ---
