@@ -486,12 +486,14 @@ export const calculateQuantities = (
 
   // --- 3. TORNILLOS ---
 
-  // Fix 6x1.5: panel a montante (vinculante) - ceil(altura / 0.20) * 2 por montante
-  const alturaMontante = 2.44;
-  const totalMLVinculantes = paneles_muros * 7;
-  const totalMontantes = totalMLVinculantes / alturaMontante;
-  const tornillosPorMontante = Math.ceil(alturaMontante / 0.20) * 2;
-  quantities['FIX_6X1_5'] = Math.round(totalMontantes * tornillosPorMontante);
+  // Fix 6x1.5: tornillos de fijación en toda madera vinculante entre paneles
+  const totalMLVinculantes =
+    quantities['MAD_VINC_2X3'] +
+    quantities['MAD_SOL_BASE'] +
+    quantities['MAD_ACOMP_SOL'] +
+    quantities['MAD_SOL_CIERRE'] +
+    quantities['MAD_VINC_PISO_2X3'];
+  quantities['FIX_6X1_5'] = Math.ceil(totalMLVinculantes / 0.20) * 4;
 
   // Fix 6x2: paneles_muros * 3
   quantities['FIX_6X2'] = Math.round(paneles_muros * 3);
