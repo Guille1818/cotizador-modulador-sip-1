@@ -42,7 +42,7 @@ const AdminPage = () => {
         'MAD_VIGA_TECHO': 'Cantidad Vigas × Lado Corto (SIP/ Sandwich)',
         'MAD_CLAV_2X2': 'Clavaderas muros = round(alto_muro/1m)×largo_muro + perim. aberturas + esquinas',
         'MAD_CLAV_TECHO_2X2': 'Clavaderas techo conv = round(lado corto/1m)×lado largo',
-        'FLEJES_TECHO': 'Paneles Techo Conv * 3.25 (solo techo conv)',
+        'FLEJES_TECHO': 'Flejes techo conv = ceil(lado largo/0.6)×lado corto',
         'MAD_VIGA_PISO_3X6': 'Area Piso * 2.5 * 1.1 (si incluye piso)',
         'FIX_6X1_5': '(Paneles Muros + Paneles Piso) * 55',
         'FIX_6X2': 'Paneles Muros * 3',

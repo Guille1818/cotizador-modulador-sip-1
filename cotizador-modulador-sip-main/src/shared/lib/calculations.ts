@@ -374,6 +374,12 @@ export const calculateQuantities = (
     ? lineasClavaderasTechoConv * Math.max(width, length)
     : 0;
 
+  const flejesMurosML = 0; // TODO: calcular flejes si clavaderas son horizontales
+  const lineasFlejesTechoConv = Math.ceil(Math.max(width, length) / 0.6);
+  const flejesTechoML = includeRoof && !isSandwich
+    ? lineasFlejesTechoConv * Math.min(width, length)
+    : 0;
+
   const hbs140SoleraPiso = includeFloor ? Math.ceil(perimExt / 0.4) : 0;
   const hbs140SoleraMadera = includeFloor && structureType === 'madera' ? Math.ceil(perimExt / 0.8) : 0;
   const telHex4SoleraMetal = includeFloor && structureType === 'metal' ? Math.ceil(perimExt / 0.8) : 0;
@@ -459,8 +465,10 @@ export const calculateQuantities = (
   // Clavaderas techo 2x2: líneas perpendiculares a la caída, solo techo conv
   quantities['MAD_CLAV_TECHO_2X2'] = Math.round(clavaderasTechoML);
 
-  // Flejes techo 2x1/2: paneles_techo_conv * 3.25 (ONLY techo conv)
-  quantities['FLEJES_TECHO'] = Math.round(paneles_techo_conv * 3.25);
+  // Flejes muros 2x1/2: por ahora no se usan con clavaderas verticales
+  const flejesMuros = flejesMurosML;
+  // Flejes techo 2x1/2: líneas paralelas a la caída, solo techo conv
+  quantities['FLEJES_TECHO'] = Math.round(flejesTechoML);
 
   // Vigas piso 3x6: keep existing logic
   if (includeFloor && (structureType === 'madera' || structureType === 'metal')) {

@@ -19,7 +19,7 @@
 //   MAD_VIGA_TECHO = cantidadVigasTecho * ladoCorto
 //   MAD_CLAV_2X2 = sum(round(alto_muro / 1m) × largo_muro) + perim. aberturas + 2m × esquinas
 //   MAD_CLAV_TECHO_2X2 = round(lado corto / 1m) × lado largo (solo techo conv)
-//   FLEJES_TECHO = paneles_techo_conv * 3.25
+//   FLEJES_TECHO = ceil(lado largo / 0.6) × lado corto (solo techo conv)
 //
 // TORNILLOS:
 //   FIX_6X1_5 = (paneles_muros + paneles_piso) * 55
