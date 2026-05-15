@@ -176,6 +176,7 @@ const Engineering = () => {
             exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO",
             roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70",
             includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true,
+            interiorWallsHeight: 'panel',
         };
         const missing: Record<string, unknown> = {};
         let needsSync = false;
@@ -199,8 +200,15 @@ const Engineering = () => {
 
     /* ── geometry calculation ── */
     const geo = useMemo(() => {
-        return calculateGeometry(dimensions, interiorWalls, facadeConfigs, openings, { ...project, perimeterWalls, interiorWalls } as Partial<Project> & { foundationType?: string }, selections);
-    }, [dimensions, interiorWalls, facadeConfigs, openings, project, selections, perimeterWalls]);
+        return calculateGeometry(
+            dimensions,
+            interiorWalls,
+            facadeConfigs,
+            openings,
+            { ...project, perimeterWalls, interiorWalls, foundationType } as Partial<Project> & { foundationType?: string },
+            selections
+        );
+    }, [dimensions, interiorWalls, facadeConfigs, openings, project, selections, perimeterWalls, foundationType]);
 
     const area = dimensions.width * dimensions.length;
 
@@ -317,6 +325,19 @@ const Engineering = () => {
                     <NumberStepper label="Largo" value={dimensions.length} onChange={(v) => setDimensions({ length: v })} min={3} max={20} step={0.5} unit="m" compact />
                     <NumberStepper label="Ancho" value={dimensions.width} onChange={(v) => setDimensions({ width: v })} min={3} max={15} step={0.5} unit="m" compact />
                     <NumberStepper label="Alt. Muros" value={dimensions.height} onChange={(v) => setDimensions({ height: v })} min={2.44} max={5.0} step={0.10} unit="m" compact />
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alt. Muros Int.</label>
+                        <div className="flex h-9 border border-slate-200 rounded-lg overflow-hidden">
+                            <button
+                                onClick={() => setSelectionId('interiorWallsHeight', 'roof')}
+                                className={`flex-1 text-[10px] font-bold uppercase transition-all ${(selections as any).interiorWallsHeight === 'roof' ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
+                            >Techo</button>
+                            <button
+                                onClick={() => setSelectionId('interiorWallsHeight', 'panel')}
+                                className={`flex-1 text-[10px] font-bold uppercase transition-all border-l border-slate-200 ${(selections as any).interiorWallsHeight === 'panel' ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
+                            >2.44m</button>
+                        </div>
+                    </div>
                     <NumberStepper label="Cumbrera" value={dimensions.ridgeHeight} onChange={(v) => setDimensions({ ridgeHeight: v })} min={2.44} max={7.0} step={0.10} unit="m" compact />
 
                     {/* Foundation */}
@@ -737,13 +758,13 @@ const Engineering = () => {
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Agregar Aberturas</label>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <button
-                                                        onClick={() => addOpening(maximizedFacade! as FacadeSide, 'window')}
+                                                        onClick={() => addOpening((activeInteriorWallId ?? maximizedFacade!) as any, 'window')}
                                                         className="flex items-center justify-center gap-2 py-2.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-xl text-[10px] font-bold uppercase border border-cyan-200 transition-all"
                                                     >
                                                         <Square size={14} /> Ventana
                                                     </button>
                                                     <button
-                                                        onClick={() => addOpening(maximizedFacade! as FacadeSide, 'door')}
+                                                        onClick={() => addOpening((activeInteriorWallId ?? maximizedFacade!) as any, 'door')}
                                                         className="flex items-center justify-center gap-2 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[10px] font-bold uppercase border border-amber-200 transition-all"
                                                     >
                                                         <DoorOpen size={14} /> Puerta

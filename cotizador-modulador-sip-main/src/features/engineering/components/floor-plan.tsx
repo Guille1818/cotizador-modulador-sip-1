@@ -367,8 +367,8 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
     };
 
     const geo = React.useMemo(() => {
-        return calculateGeometry(dimensions, interiorWalls, facadeConfigs || {}, openings, project, selections);
-    }, [dimensions, interiorWalls, openings, project, selections, facadeConfigs]);
+        return calculateGeometry(dimensions, interiorWalls, facadeConfigs || {}, openings, { ...project, foundationType }, selections);
+    }, [dimensions, interiorWalls, openings, project, selections, facadeConfigs, foundationType]);
 
     const getSVGCoords = (clientX: number, clientY: number, snap = false) => {
         if (!containerRef.current) return { x: 0, y: 0 };
@@ -1292,6 +1292,16 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
                                                     onClick={() => duplicateWall(activeInteriorWallId)}
                                                     className="py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
                                                 >Duplicar</button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-100 mt-1">
+                                                <button
+                                                    onClick={() => addOpening(activeInteriorWallId as any, 'door')}
+                                                    className="py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                                >+ Puerta</button>
+                                                <button
+                                                    onClick={() => addOpening(activeInteriorWallId as any, 'window')}
+                                                    className="py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                                >+ Ventana</button>
                                             </div>
                                         </div>
                                     );
