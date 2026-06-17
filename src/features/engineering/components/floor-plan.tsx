@@ -808,7 +808,7 @@ const FloorPlan = ({ hideUI, isPrint, isExpanded }: FloorPlanProps) => {
             {/* CANVAS */}
             <div
                 ref={containerRef}
-                className="flex-1 bg-slate-50 relative overflow-hidden"
+                className="flex-1 bg-slate-50 relative overflow-hidden" style={{ cursor: mode === 'select' ? 'default' : 'none' }}
                 onMouseDown={handleMouseDown}
                 onDoubleClick={() => setMode(mode === 'select' ? 'draw' : 'select')}
             >

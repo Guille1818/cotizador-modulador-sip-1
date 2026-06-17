@@ -5,6 +5,7 @@ import { useStore } from '@/shared/store/useStore';
 import { calculateGeometry } from '@/shared/lib/calculations';
 import type { HousePreset } from '@/shared/lib/presets';
 import type { Project, FacadeSide } from '@/shared/types';
+import { ShapeSelector } from './ShapeSelector';import { RoofPlanner } from './RoofPlanner';
 import FloorPlan from './floor-plan';
 import FacadeView from './facade-view';
 import Viewer3D from './viewer-3d';
@@ -160,7 +161,7 @@ const Engineering = () => {
         project, foundationType, setFoundationType, structureType, setStructureType,
         selections, toggleSelectionCategory, setSelectionId, setSelections, setRoofSystem,
         prices, perimeterWalls,
-        updateRecess, removeRecess, clearRecesses, addLShape, addCShape,
+        updateRecess, removeRecess, clearRecesses, setShape, roofConfig, setRoofConfig,
         togglePerimeterVisibility,
         addWall, removeWall,
         savedDesigns, saveDesign, loadDesign, deleteDesign,
@@ -350,42 +351,18 @@ const Engineering = () => {
                     </div>
 
                     {/* Roof System */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Techo</label>
-                        <div className="flex h-9 border border-slate-200 rounded-lg overflow-hidden">
-                            <button
-                                onClick={() => setRoofSystem('sip')}
-                                className={`flex-1 text-[10px] font-bold uppercase transition-all ${(selections as any).roofSystem === 'sip' ? 'bg-orange-500 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
-                            >SIP</button>
-                            <button
-                                onClick={() => setRoofSystem('sandwich')}
-                                className={`flex-1 text-[10px] font-bold uppercase transition-all border-l border-slate-200 ${(selections as any).roofSystem === 'sandwich' ? 'bg-orange-500 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
-                            >Sandwich</button>
-                        </div>
-                    </div>
+<RoofPlanner
+    config={roofConfig}
+    onChange={setRoofConfig}
+    width={dimensions.width}
+    length={dimensions.length}
+/>
                 </div>
 
                 {/* Second row: shape + roof material + facade toggles */}
                 <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-100">
                     {/* Plant shape */}
-                    <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">Planta:</span>
-                        <button
-                            onClick={() => clearRecesses()}
-                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 0 ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
-                            title="Rectangular"
-                        ><Square size={14} /></button>
-                        <button
-                            onClick={() => addLShape()}
-                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && (project as any).recesses[0].hideSideWall ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
-                            title="Forma L"
-                        ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16h16" /></svg></button>
-                        <button
-                            onClick={() => addCShape()}
-                            className={`h-8 w-8 rounded-lg border-2 flex items-center justify-center transition-all ${(project as any).recesses?.length === 1 && !(project as any).recesses[0].hideSideWall ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}`}
-                            title="Forma C"
-                        ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 4H4v16h16" /></svg></button>
-                    </div>
+                   <ShapeSelector currentRecesses={(project as any).recesses || []} onSelect={setShape} />
 
                     <div className="h-6 w-px bg-slate-200 hidden md:block" />
 

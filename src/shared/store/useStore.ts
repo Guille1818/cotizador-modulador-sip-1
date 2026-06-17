@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { INITIAL_PRICES } from '@/shared/lib/constants';
+import { DEFAULT_ROOF_CONFIG, applyRoofConfig } from '@/shared/lib/roofConfig';
+import type { RoofConfig } from '@/shared/lib/roofConfig';
 import type {
   Project,
   Dimensions,
@@ -125,6 +127,8 @@ interface StoreState {
   setShowRoofPlates: (val: boolean) => void;
   setBeamOffset: (val: number) => void;
   updateFacadeConfig: (side: FacadeSide, updates: Partial<FacadeConfig>) => void;
+  roofConfig: RoofConfig;
+setRoofConfig: (updates: Partial<RoofConfig>) => void;
 
   setFoundationType: (type: FoundationType) => void;
   setStructureType: (type: StructureType) => void;
@@ -157,6 +161,7 @@ interface StoreState {
   removeRecess: (id: string) => void;
   clearRecesses: () => void;
 
+  setShape: (variant: import('@/shared/types').ShapeVariant) => void;
   addLShape: () => void;
   addCShape: () => void;
 
@@ -497,7 +502,18 @@ export const useStore = create<StoreState>()(
             [side]: { ...state.facadeConfigs[side], ...updates }
           }
         }));
-      },
+      },setRoofConfig: (updates) => set((state) => {
+  const newConfig = { ...state.roofConfig, ...updates };
+  const { width, length } = state.dimensions;
+  const newFacadeConfigs = applyRoofConfig(newConfig, width, length);
+  const mergedConfigs = { ...state.facadeConfigs };
+  (Object.keys(newFacadeConfigs) as import('@/shared/types').FacadeSide[]).forEach(side => {
+    if (state.project.perimeterVisibility?.[side] !== false) {
+      mergedConfigs[side] = newFacadeConfigs[side];
+    }
+  });
+  return { roofConfig: newConfig, facadeConfigs: mergedConfigs };
+}),
 
       setFoundationType: (type) => set((state) => ({
         foundationType: type,
@@ -618,38 +634,44 @@ export const useStore = create<StoreState>()(
         project: { ...state.project, recesses: [] }
       })),
 
-      addLShape: () => set((state) => {
-        const { width, length } = state.dimensions;
-        const recessWidth = length * 0.4;
-        const recessDepth = width * 0.4;
-        const newRecess: Recess = {
-          id: generateUUID(),
-          side: 'Este',
-          x: 0,
-          width: recessWidth,
-          depth: recessDepth,
-          height: state.dimensions.height,
-          hideBase: true,
-          hideSideWall: true
-        };
-        return { project: { ...state.project, recesses: [newRecess] } };
-      }),
-
-      addCShape: () => set((state) => {
-        const { width, length } = state.dimensions;
-        const recessWidth = length * 0.5;
-        const recessDepth = width * 0.3;
-        const newRecess: Recess = {
-          id: generateUUID(),
-          side: 'Este',
-          x: (length - recessWidth) / 2,
-          width: recessWidth,
-          depth: recessDepth,
-          height: state.dimensions.height,
-          hideBase: true
-        };
-        return { project: { ...state.project, recesses: [newRecess] } };
-      }),
+setShape: (variant) => set((state) => {
+  const { width, length, height } = state.dimensions;
+  if (variant === 'rectangular') {
+    return { project: { ...state.project, recesses: [] } };
+  }
+  const uid = (): string => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
+  };
+  const mk = (side: any, x: number, w: number, d: number, opts: any = {}): any =>
+    ({ id: uid(), side, x, width: w, depth: d, height, ...opts });
+  const lW = length * 0.40; const lD = width * 0.40;
+  const cV = length * 0.50; const dV = width * 0.30;
+  const cH = width * 0.50;  const dH = length * 0.30;
+  const tV = length * 0.35; const tdV = width * 0.50;
+  const tH = width * 0.50;  const tdH = length * 0.35;
+  const pH = width * 0.45;  const pdH = length * 0.28;
+  const pV = length * 0.45; const pdV = width * 0.28;
+  let recesses: any[] = [];
+  switch (variant) {
+    case 'L-0':   recesses = [mk('Este',  0,           lW, lD, { hideBase: true, hideSideWall: true })]; break;
+    case 'L-90':  recesses = [mk('Este',  length - lW, lW, lD, { hideBase: true, hideSideWall: true })]; break;
+    case 'L-180': recesses = [mk('Oeste', length - lW, lW, lD, { hideBase: true, hideSideWall: true })]; break;
+    case 'L-270': recesses = [mk('Oeste', 0,           lW, lD, { hideBase: true, hideSideWall: true })]; break;
+    case 'C-0':   recesses = [mk('Este',  (length - cV) / 2, cV, dV, { hideBase: true })]; break;
+    case 'C-90':  recesses = [mk('Sur',   (width  - cH) / 2, cH, dH, { hideBase: true })]; break;
+    case 'C-180': recesses = [mk('Oeste', (length - cV) / 2, cV, dV, { hideBase: true })]; break;
+    case 'C-270': recesses = [mk('Norte', (width  - cH) / 2, cH, dH, { hideBase: true })]; break;
+    case 'T-0':   recesses = [mk('Este',  0,           tV, tdV, { hideBase: true, hideSideWall: true }), mk('Oeste', 0,           tV, tdV, { hideBase: true, hideSideWall: true })]; break;
+    case 'T-90':  recesses = [mk('Norte', width - tH,  tH, tdH, { hideBase: true, hideSideWall: true }), mk('Sur',   0,           tH, tdH, { hideBase: true, hideSideWall: true })]; break;
+    case 'T-180': recesses = [mk('Este',  length - tV, tV, tdV, { hideBase: true, hideSideWall: true }), mk('Oeste', length - tV, tV, tdV, { hideBase: true, hideSideWall: true })]; break;
+    case 'T-270': recesses = [mk('Norte', 0,           tH, tdH, { hideBase: true, hideSideWall: true }), mk('Sur',   width - tH,  tH, tdH, { hideBase: true, hideSideWall: true })]; break;
+    case 'cruz':  recesses = [mk('Norte', (width - pH) / 2, pH, pdH, { hideBase: true }), mk('Sur', (width - pH) / 2, pH, pdH, { hideBase: true }), mk('Este', (length - pV) / 2, pV, pdV, { hideBase: true }), mk('Oeste', (length - pV) / 2, pV, pdV, { hideBase: true })]; break;
+  }
+  return { project: { ...state.project, recesses } };
+}),
+addLShape: () => (useStore.getState() as any).setShape('L-0'),
+addCShape:  () => (useStore.getState() as any).setShape('C-0'),
 
       // --- PRODUCT MANAGEMENT ---
       updateProduct: (id, updates) => set((state) => ({
@@ -786,7 +808,7 @@ export const useStore = create<StoreState>()(
           perimeterWalls: [{ id: 'Norte', side: 'Norte' }, { id: 'Sur', side: 'Sur' }, { id: 'Este', side: 'Este' }, { id: 'Oeste', side: 'Oeste' }],
           interiorWalls: [], openings: [],
           facadeConfigs: { Norte: { type: '2-aguas', hBase: 2.44, hMax: 3.5 }, Sur: { type: '2-aguas', hBase: 2.44, hMax: 3.5 }, Este: { type: 'recto', hBase: 2.44, hMax: 2.44 }, Oeste: { type: 'recto', hBase: 2.44, hMax: 2.44 } },
-          selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true, interiorWallHeightMode: "roof" },
+          selections: { exteriorWallId: "OSB-70-E", interiorWallId: "OSB-70-DECO", roofId: "TECHO-OSB-70", floorId: "PISO-OSB-70", roofSystem: "sip", includeExterior: true, includeInterior: true, includeRoof: true, includeFloor: true, includeEngineeringDetail: true, interiorWallHeightMode: "roof" },roofConfig: DEFAULT_ROOF_CONFIG,
           prices: INITIAL_PRICES, foundationType: 'platea', structureType: 'madera', snapshots: [], crmEntries: [], activeId: null, activeType: null, showBeams: true, showRoofPlates: true, beamOffset: 0, defaults: {
             benefits: '• Compromiso de Eficiencia: 6% de descuento por cierre temprano (7 días).\n• Escalabilidad: 8% de descuento en compras > 20 unidades.\n• Optimización: 12% de beneficio por pago en efectivo.\n• Acompañamiento: Asesoría técnica y manuales paso a paso.',
             extraNotes: '• Validez: 7 días corridos.\n• Precios Netos: No incluyen IVA.\n• Reserva: Descuentos válidos según vigencia.\n• Logística: No incluye envío ni descarga.'

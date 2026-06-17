@@ -21,8 +21,8 @@ const FacadeView = ({ type, data, scale = 20, onMaximize, isMaximized = false }:
     const isVisible = (project as any).perimeterVisibility?.[type] !== false;
 
     const config = (facadeConfigs as any)[type] || { type: 'recto', hBase: 2.44, hMax: 2.44 };
-    const h1 = config.hBase;
-    const h2 = config.hMax;
+    const h1 = Number(config.hBase) || 2.44;
+    const h2 = Number(config.hMax) || 2.44;
 
     const isFrontBack = type === 'Norte' || type === 'Sur';
     const wallWidth = isFrontBack ? width : length;
